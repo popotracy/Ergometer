@@ -14,7 +14,12 @@
 % Paramenters:
 %     Subject_ID    
 %     lang (fr/eng)
-% 
+%
+% Triggers:
+%     "0" : close the portal handle.
+%     "1" : the onset of MVC measurement.
+%     "2" : the offset of MVC measurement.
+%
 % Default variables: 
 %     Baseline_duration         : 10s 
 %     MVC_duration              : 3s                                                      
@@ -47,16 +52,12 @@ lang='eng';
 % end;
 %% Creat Parallel port 
 
-% if ~exist('t') 
-%     Declare_communication
-% end
+t = serial('COM1') ;
+ioObj=io64;%create a parallel port handle
+status=io64(ioObj);%if this returns '0' the port driver is loaded & ready
+address=hex2dec('0378') ;
 
-
-
-
-
-
-
+fopen(t) ;
 
 %% Screen set-up
 sampleTime      = 1/60;                                                     % screen refresh rate at 60 Hz (always check!!)
@@ -166,6 +167,9 @@ while MVC_measurement_n>0;
     startTime = GetSecs;
     torque_mvc = [];
     
+    if ~DebugMode  io64(ioObj,address,1); pause(0.02); io64(ioObj,address,0); end % trigger 1: the onset of MVC measurement.
+
+    
     while GetSecs < startTime + MVC_duration
         torque_mvc_data = read(d,n);
         torque_mvc_data.cDAQ1Mod1_ai23 = (torque_mvc_data.cDAQ1Mod1_ai23-baseline)*Nm;
@@ -178,6 +182,8 @@ while MVC_measurement_n>0;
         Screen(theWindow,'Flip',[],0);                                      % 0:delete previous, 1:keep
     end ;
     
+    if ~DebugMode  io64(ioObj,address,2); pause(0.02); io64(ioObj,address,0); end % trigger 2: the offset of MVC measurement.
+
     save([pwd,'/',Subject_ID,'_MVC_',num2str(MVC_measurement_n),'.mat'],"torque_mvc"); % Save the MVC for the subject. 
     MVCC(i)=max(movmean(torque_mvc.Variables,d.Rate*0.5));                  % A 0.5s moving average window was used to calculate for MVC technique. 
     i=i+1;
