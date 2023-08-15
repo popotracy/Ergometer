@@ -1,17 +1,17 @@
 clear, close all   clc 
 %%
-%load ('Variables.mat', 'MVC','baseline','lang','Subject_ID');     
+load ('Variables.mat', 'MVC','baseline','lang','Subject_ID');     
 DebugMode = 1;
-lang='eng'
-%% DAQ
+lang='eng'; % If 1,(debug) small screen
+%% DAQ 
 % d = daq("ni");                                                              % Create DataAcquisition Object
 % ch=addinput(d,"cDAQ1Mod1","ai23","Voltage");                                % Add channels and set channel properties:'Measurement Type (Voltage)', 
 % ch.TerminalConfig = "SingleEnded";                                          % 'Terminal  Config (SingleEnded)', if any...
 
 %% Create parallel port handle
-ioObj=io64; %create a parallel port handle
-status=io64(ioObj); %if this returns '0' the port driver is loaded & ready
-address=hex2dec('0378'); %'378' is the default address of LPT1 in hex (convert hexadecimal to decimal number).
+% ioObj=io64; %create a parallel port handle
+% status=io64(ioObj); %if this returns '0' the port driver is loaded & ready
+% address=hex2dec('0378'); %'378' is the default address of LPT1 in hex (convert hexadecimal to decimal number).
 
 %% Experiment Set-up
 PER = 0.7 ;                                                                 % Percentage of the inner screen to be used.
@@ -91,16 +91,6 @@ Ay3 = InScr(4)-3*Block_H;
 Ax4 = InScr(3);
 Ay4 = InScr(4)-3*Block_H; 
 
-% 
-% ratio=(Ay2-Ay3)/(Ax3-Ax2);
-% % #1-#2
-% Tunnel1to2=floor([(Ax1-R), Ay1-R, (Ax1+R), Ay1+R]);
-% % #2-#3
-% Tunnel2to3=floor([InScr(1), InScr(4), InScr(3), InScr(4)+R]);
-% % #3-#4
-% Tunnel3to4=floor([InScr(1), InScr(4), InScr(3), InScr(4)+R]);
-
-
 %% Tunnel
 torque_eeg=[];
 Ball_percentage=[];
@@ -108,9 +98,8 @@ trial_n=2;
 
 
 ramping_t=Threshold*2/0.1; % According to reference: 10% for 2s-ramping.
-pre_ramping_t=ramping_t/2.5;
+pre_ramping_t=ramping_t/2.75;
 velocity=Block_W/pre_ramping_t; 
-percentage_scale=3*Block_W/Threshold;
 
 pre_threshold_t=(inScrnWidth-R)/velocity 
 post_threshold_t=6; % Default is 60s.
@@ -147,11 +136,12 @@ WaitSecs(3);
 % n = ceil(d.Rate/10);
 
 %%
-while trial_n >0; 
+while trial_n >0, 
     KeyPressFcnTest;
     
     startTime = GetSecs; 
-    
+    if DebugMode, fprintf('onset of a trial '); pause(.1); fprintf('off '); end % where to insert trigger
+
     while GetSecs <= startTime + Trial_t
         
         Screen('FillRect',theWindow,white,InScr);
@@ -170,6 +160,17 @@ while trial_n >0;
         for i=1:1:(Ax4-Ax3)
             Screen('FillOval', theWindow, red,[(Ax3-R)+i, Ay3-R, (Ax3+R)+i, Ay3+R]);
         end
+        
+        
+        while round(GetSecs-startTime,2) == round(pre_ramping_t,2); 
+                if DebugMode, fprintf('onset of ramping. '); pause(.005); fprintf('off '); end % where to insert trigger
+
+        end
+        
+        while round(GetSecs-startTime,2) == round(pre_threshold_t,2); 
+                if DebugMode, fprintf('offset of ramping. '); pause(.005); fprintf('off '); end % where to insert trigger
+
+        end
        
 
       % data acqusition
@@ -181,7 +182,7 @@ while trial_n >0;
     
       if GetSecs-startTime <=  pre_threshold_t
           percentage_scale=3*Block_H/Threshold;
-          Ball_RealtimeHeight=.05*percentage_scale;
+          Ball_RealtimeHeight=0.1*percentage_scale;
           %Ball_RealtimeHeight=mean(torque_eeg_data.Variables)*percentage_scale/MVC;
           Bx1=(Ax1-R)+velocity*(GetSecs-startTime);
           Bx2=(Ax1+R)+velocity*(GetSecs-startTime);
@@ -189,7 +190,7 @@ while trial_n >0;
           By2=(Ay2+R)-abs(Ball_RealtimeHeight);        
       else
           percentage_scale=Block_H/(1-Threshold);
-          Ball_RealtimeHeight=(0.2-0.1)*percentage_scale;
+          Ball_RealtimeHeight=(0.1-0.1)*percentage_scale;
           %Ball_RealtimeHeight=mean(torque_eeg_data.Variables)*percentage_scale/MVC;
           Bx1=(Ax3+Ax4)/2-R;
           Bx2=(Ax3+Ax4)/2+R;
@@ -202,7 +203,7 @@ while trial_n >0;
       %realtime ball
       Screen('FillOval', theWindow, black,Ball); 
       % timer
-      timerdisplay=num2str(round(GetSecs-startTime));
+      timerdisplay=num2str(round(GetSecs-startTime,1));
       DrawFormattedText(theWindow,timerdisplay,'center','center', black,255); 
       %DrawFormattedText(theWindow,'0%',Ax1+20,Ay2-50, black,255);
       Threshold_display=[num2str(Threshold*100) '%'];
@@ -214,6 +215,8 @@ while trial_n >0;
       Screen(theWindow,'Flip',[],0);
     
     end
+    
+    if DebugMode, fprintf('offset of a trial '); pause(.1); fprintf('off '); end % where to insert trigger
     
     Screen('FillRect',theWindow,white,ExtraTop);
     Screen('FillRect',theWindow,white,ExtraBottom);
