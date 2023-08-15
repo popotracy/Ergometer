@@ -168,7 +168,6 @@ while MVC_measurement_n>0;
     torque_mvc = [];
     
     if ~DebugMode  io64(ioObj,address,1); pause(0.02); io64(ioObj,address,0); end % trigger 1: the onset of MVC measurement.
-
     
     while GetSecs < startTime + MVC_duration
         torque_mvc_data = read(d,n);
@@ -207,4 +206,6 @@ Screen(theWindow,'Flip',[],0);                                              % 0:
 %% End
 save([pwd,'/Variables.mat']);                                               % Save the variables for further experiment. 
 KeyPressFcnTest
+
+fclose(t) ;
 Screen('CloseAll');
