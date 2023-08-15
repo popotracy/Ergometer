@@ -4,14 +4,14 @@ load ('Variables.mat', 'MVC','baseline','lang','Subject_ID');
 DebugMode = 1;
 lang='eng'; % If 1,(debug) small screen
 %% DAQ 
-% d = daq("ni");                                                              % Create DataAcquisition Object
-% ch=addinput(d,"cDAQ1Mod1","ai23","Voltage");                                % Add channels and set channel properties:'Measurement Type (Voltage)', 
-% ch.TerminalConfig = "SingleEnded";                                          % 'Terminal  Config (SingleEnded)', if any...
+d = daq("ni");                                                              % Create DataAcquisition Object
+ch=addinput(d,"cDAQ1Mod1","ai23","Voltage");                                % Add channels and set channel properties:'Measurement Type (Voltage)', 
+ch.TerminalConfig = "SingleEnded";                                          % 'Terminal  Config (SingleEnded)', if any...
 
 %% Create parallel port handle
-% ioObj=io64; %create a parallel port handle
-% status=io64(ioObj); %if this returns '0' the port driver is loaded & ready
-% address=hex2dec('0378'); %'378' is the default address of LPT1 in hex (convert hexadecimal to decimal number).
+ioObj=io64; %create a parallel port handle
+status=io64(ioObj); %if this returns '0' the port driver is loaded & ready
+address=hex2dec('0378'); %'378' is the default address of LPT1 in hex (convert hexadecimal to decimal number).
 
 %% Experiment Set-up
 PER = 0.7 ;                                                                 % Percentage of the inner screen to be used.
@@ -132,14 +132,16 @@ DrawFormattedText(theWindow, text6,'center',750, white,255);
 Screen(theWindow,'Flip',[],0);                                              % 0:delete previous, 1:keep
 WaitSecs(3);
 
-% start(d,"continuous");
-% n = ceil(d.Rate/10);
+
 
 %%
 while trial_n >0, 
     KeyPressFcnTest;
     
     startTime = GetSecs; 
+    start(d,"continuous");
+    n = ceil(d.Rate/10);
+    
     if DebugMode, fprintf('onset of a trial '); pause(.1); fprintf('off '); end % where to insert trigger
 
     while GetSecs <= startTime + Trial_t
@@ -149,49 +151,37 @@ while trial_n >0,
         Screen('FillRect',theWindow,white,ExtraBottom);
       
         ratio=(Ay2-Ay3)/(Ax3-Ax2);
-        for i=1:1:(Ax2-Ax1)
-            Screen('FillOval', theWindow, red,[(Ax1-R)+i, Ay1-R, (Ax1+R)+i, Ay1+R]);
-        end
+        for i=1:1:(Ax2-Ax1), Screen('FillOval', theWindow, red,[(Ax1-R)+i, Ay1-R, (Ax1+R)+i, Ay1+R]);end 
+        for i=1:1:(Ax3-Ax2), Screen('FillOval', theWindow, red,[(Ax2-R)+i, (Ay2-R)-i*ratio, (Ax2+R)+i, (Ay2+R)-i*ratio]);end 
+        for i=1:1:(Ax4-Ax3), Screen('FillOval', theWindow, red,[(Ax3-R)+i, Ay3-R, (Ax3+R)+i, Ay3+R]);end
         
-        for i=1:1:(Ax3-Ax2)
-            Screen('FillOval', theWindow, red,[(Ax2-R)+i, (Ay2-R)-i*ratio, (Ax2+R)+i, (Ay2+R)-i*ratio]);
-        end
-        
-        for i=1:1:(Ax4-Ax3)
-            Screen('FillOval', theWindow, red,[(Ax3-R)+i, Ay3-R, (Ax3+R)+i, Ay3+R]);
-        end
-        
-        
-        while round(GetSecs-startTime,2) == round(pre_ramping_t,2); 
-                if DebugMode, fprintf('onset of ramping. '); pause(.005); fprintf('off '); end % where to insert trigger
-
+        while round(GetSecs-startTime,2) == round(pre_ramping_t,2);
+            if DebugMode, fprintf('onset of ramping. '); pause(.005); fprintf('off '); end % where to insert trigger
         end
         
         while round(GetSecs-startTime,2) == round(pre_threshold_t,2); 
-                if DebugMode, fprintf('offset of ramping. '); pause(.005); fprintf('off '); end % where to insert trigger
-
+            if DebugMode, fprintf('offset of ramping. '); pause(.005); fprintf('off '); end % where to insert trigger
         end
        
 
       % data acqusition
-%     torque_eeg_data = read(d,n);
-%     torque_eeg_data.cDAQ1Mod1_ai23 = -((torque_eeg_data.cDAQ1Mod1_ai23-baseline)*50);
-%     torque_eeg = [torque_eeg; torque_eeg_data];
-%     Ball_percentage=[Ball_percentage; mean(torque_eeg_data.Variables)*100/MVC];
+      torque_eeg_data = read(d,n);
+      torque_eeg_data.cDAQ1Mod1_ai23 = -((torque_eeg_data.cDAQ1Mod1_ai23-baseline)*50);
+      torque_eeg = [torque_eeg; torque_eeg_data];
+      Ball_percentage=[Ball_percentage; mean(torque_eeg_data.Variables)*100/MVC];
       
-    
       if GetSecs-startTime <=  pre_threshold_t
           percentage_scale=3*Block_H/Threshold;
-          Ball_RealtimeHeight=0.1*percentage_scale;
-          %Ball_RealtimeHeight=mean(torque_eeg_data.Variables)*percentage_scale/MVC;
+          %Ball_RealtimeHeight=0.1*percentage_scale;
+          Ball_RealtimeHeight=mean(torque_eeg_data.Variables)*percentage_scale/MVC;
           Bx1=(Ax1-R)+velocity*(GetSecs-startTime);
           Bx2=(Ax1+R)+velocity*(GetSecs-startTime);
           By1=(Ay2-R)-abs(Ball_RealtimeHeight);
           By2=(Ay2+R)-abs(Ball_RealtimeHeight);        
       else
           percentage_scale=Block_H/(1-Threshold);
-          Ball_RealtimeHeight=(0.1-0.1)*percentage_scale;
-          %Ball_RealtimeHeight=mean(torque_eeg_data.Variables)*percentage_scale/MVC;
+          %Ball_RealtimeHeight=(0.1-0.1)*percentage_scale;
+          Ball_RealtimeHeight=mean(torque_eeg_data.Variables)*percentage_scale/MVC;
           Bx1=(Ax3+Ax4)/2-R;
           Bx2=(Ax3+Ax4)/2+R;
           By1=(Ay4-R)-abs(Ball_RealtimeHeight);
@@ -216,6 +206,7 @@ while trial_n >0,
     
     end
     
+    stop(d);
     if DebugMode, fprintf('offset of a trial '); pause(.1); fprintf('off '); end % where to insert trigger
     
     Screen('FillRect',theWindow,white,ExtraTop);
@@ -240,7 +231,7 @@ while trial_n >0,
     
 end 
 
-% stop(d);
+
 
 %%
 Screen('CloseAll');
