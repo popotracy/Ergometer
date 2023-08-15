@@ -126,7 +126,7 @@ baseline=mean(torque_cal.cDAQ1Mod1_ai23);                                   % Ba
 
 MVC_duration = 3;                                                           % 3 seconds as default
 Rest_duration = 180;                                                          %  1min 30seconds as default.
-Ready_duration = 3;
+Ready_duration = 5;
 MVC_measurement_n=3;                                                        % Number of trials for measuring MVC. 
 Nm=50;                                                                      % Transform the voltage to torque force (based on the value from the ergoneter brochure).
 MVCC=[]; i=1;                                                               % Record the MVC values of each measurement in the matrix. 
@@ -158,7 +158,7 @@ while MVC_measurement_n>0;
     
     while GetSecs < startTime + Ready_duration;
         MVC_disp=[num2str(Ready_duration-round(GetSecs-startTime)),'s']
-        DrawFormattedText(theWindow,[text1 MVC_disp],'center','center',255);
+        DrawFormattedText(theWindow,[text2 MVC_disp],'center','center',255);
         Screen(theWindow,'Flip',[],0);                                      % 0:delete previous, 1:keep
     end ;
     
