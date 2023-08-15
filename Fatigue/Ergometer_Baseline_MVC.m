@@ -29,14 +29,15 @@
 
 clear, close all,  clc 
 KeyPressFcnTest
+
 %% Data aqusition with NI
 
-d = daq("ni");                                                              % Create DataAcquisition Object
-ch=addinput(d,"cDAQ1Mod1","ai23","Voltage");                                % Add channels and set channel properties:'Measurement Type (Voltage)', 
-ch.TerminalConfig = "SingleEnded";                                          % 'Terminal  Config (SingleEnded)', if any...
+% d = daq("ni");                                                              % Create DataAcquisition Object
+% ch=addinput(d,"cDAQ1Mod1","ai23","Voltage");                                % Add channels and set channel properties:'Measurement Type (Voltage)', 
+% ch.TerminalConfig = "SingleEnded";                                          % 'Terminal  Config (SingleEnded)', if any...
 
 %% Participant ID
-DebugMode = 0 ; % If 1,(debug) small screen
+DebugMode = 1 ; % If 1,(debug) small screen
 Subject_ID = input('Please enter the Subject ID number:','s');              % Creat the file for the subject. 
 %mkdir(pwd, Subject_ID);
 lang='eng';
@@ -50,14 +51,6 @@ lang='eng';
 % if ~exist('t') 
 %     Declare_communication
 % end
-
-
-
-
-
-
-
-
 %% Screen set-up
 sampleTime      = 1/60;                                                     % screen refresh rate at 60 Hz (always check!!)
 
@@ -84,7 +77,7 @@ oldTextSize=Screen('TextSize', theWindow, 30);                              % Co
 
 Baseline_duration = 10;
 torque_cal=[];
-n = ceil(d.Rate/10);
+% n = ceil(d.Rate/10);
 
 switch lang
     case 'eng'
@@ -95,25 +88,25 @@ switch lang
         text1 = ['Préparez-vous à serrer votre main le plus fort possible pour ',num2str(trialTime),' secondes'];
 end
 
-start(d,"continuous"); 
+%start(d,"continuous"); 
 
 DrawFormattedText(theWindow, text1,'center','center',255);
 Screen(theWindow,'Flip',[],0);
 WaitSecs(2);
 
-startTime = GetSecs; 
+startTime = GetSecs;
     
 while GetSecs < startTime + Baseline_duration;
     
-    torque_cal_data = read(d,n);                                            % Read the data in timetable format.
-    torque_cal = [torque_cal; torque_cal_data];
-    cla;
+%     torque_cal_data = read(d,n);                                            % Read the data in timetable format.
+%     torque_cal = [torque_cal; torque_cal_data];
+%     cla;
 
     Base_disp=[num2str(Baseline_duration-round(GetSecs-startTime)),'s'];
     DrawFormattedText(theWindow,text2,'center','center',255);
     Screen(theWindow,'Flip',[],0);  % 0:delete previous, 1:keep 
 end ;
-stop(d);
+% stop(d);
 
 DrawFormattedText(theWindow,text3,'center','center', white,255);
 Screen(theWindow,'Flip',[],0);
@@ -126,7 +119,7 @@ baseline=mean(torque_cal.cDAQ1Mod1_ai23);                                   % Ba
 
 MVC_duration = 3;                                                           % 3 seconds as default
 Rest_duration = 180;                                                          %  1min 30seconds as default.
-Ready_duration = 3;
+Ready_duration = 5;
 MVC_measurement_n=3;                                                        % Number of trials for measuring MVC. 
 Nm=50;                                                                      % Transform the voltage to torque force (based on the value from the ergoneter brochure).
 MVCC=[]; i=1;                                                               % Record the MVC values of each measurement in the matrix. 
@@ -150,36 +143,39 @@ DrawFormattedText(theWindow,text1,'center','center',255);
 Screen(theWindow,'Flip',[],0); 
 WaitSecs(5);
 
-start(d,"continuous"); 
+%start(d,"continuous"); 
 while MVC_measurement_n>0; 
 
     % Ready to do MVC in 5s.
     startTime = GetSecs; 
-    
+
     while GetSecs < startTime + Ready_duration;
         MVC_disp=[num2str(Ready_duration-round(GetSecs-startTime)),'s']
-        DrawFormattedText(theWindow,[text1 MVC_disp],'center','center',255);
+        DrawFormattedText(theWindow,[text2 MVC_disp],'center','center',255);
         Screen(theWindow,'Flip',[],0);                                      % 0:delete previous, 1:keep
     end ;
     
     % MVC for 3s. 
     startTime = GetSecs;
     torque_mvc = [];
+    if DebugMode, fprintf('onset of MVC'); pause(.1); fprintf('off'); end % where to insert trigger
+
     
     while GetSecs < startTime + MVC_duration
-        torque_mvc_data = read(d,n);
-        torque_mvc_data.cDAQ1Mod1_ai23 = (torque_mvc_data.cDAQ1Mod1_ai23-baseline)*Nm;
-        torque_mvc_data.cDAQ1Mod1_ai23=-(torque_mvc_data.cDAQ1Mod1_ai23);
-        torque_mvc = [torque_mvc; torque_mvc_data];
-        cla;
+%         torque_mvc_data = read(d,n);
+%         torque_mvc_data.cDAQ1Mod1_ai23 = (torque_mvc_data.cDAQ1Mod1_ai23-baseline)*Nm;
+%         torque_mvc_data.cDAQ1Mod1_ai23=-(torque_mvc_data.cDAQ1Mod1_ai23);
+%         torque_mvc = [torque_mvc; torque_mvc_data];
+%         cla;
            
         timer_disp=[num2str(MVC_duration-round(GetSecs-startTime)),'s']
         DrawFormattedText(theWindow,[text3 timer_disp],'center','center', white,255);
         Screen(theWindow,'Flip',[],0);                                      % 0:delete previous, 1:keep
     end ;
-    
+    if DebugMode, fprintf('offset of MVC'); pause(0.1); fprintf('off'); end % where to insert trigger
+
     save([pwd,'/',Subject_ID,'_MVC_',num2str(MVC_measurement_n),'.mat'],"torque_mvc"); % Save the MVC for the subject. 
-    MVCC(i)=max(movmean(torque_mvc.Variables,d.Rate*0.5));                  % A 0.5s moving average window was used to calculate for MVC technique. 
+%     MVCC(i)=max(movmean(torque_mvc.Variables,d.Rate*0.5));                  % A 0.5s moving average window was used to calculate for MVC technique. 
     i=i+1;
 
     % Resting for the next MVC for 3mins.
@@ -192,7 +188,7 @@ while MVC_measurement_n>0;
     MVC_measurement_n=MVC_measurement_n-1;
 end
 
-stop(d);
+%stop(d);
 
 MVC=max(MVCC);                                                              % Find the largest MVC value in the measurements. 
 DrawFormattedText(theWindow,text5,'center','center', white,255);
