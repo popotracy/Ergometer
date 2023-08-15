@@ -309,4 +309,5 @@ Screen(theWindow,'Flip',[],0);
 WaitSecs(5);
 
 %%
+fclose(t) ;
 Screen('CloseAll');
