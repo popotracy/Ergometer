@@ -11,6 +11,7 @@
 % Phase 3: Perform the force (bar) to reach the orange line (MVC) .
 % Phase 4: Resting state and be ready for next trial again. 
 % 
+%
 % Default parameters:
 %     BarWidth           : 100     
 %     Threshold_duration : 45s 
@@ -40,14 +41,15 @@ KeyPressFcnTest
 
 load ('Variables.mat', 'MVC','baseline','lang','Subject_ID');                                                        % the setup variables, MVC values and baseline values are imported. 
 DebugMode = 1;
-ioObj=io64; %create a parallel port handle
-status=io64(ioObj); %if this returns '0' the port driver is loaded & ready
-address=hex2dec('D010'); %'378' is the default address of LPT1 in hex (convert hexadecimal to decimal number).
+
+% ioObj=io64; %create a parallel port handle
+% status=io64(ioObj); %if this returns '0' the port driver is loaded & ready
+% address=hex2dec('D010'); %'378' is the default address of LPT1 in hex (convert hexadecimal to decimal number).
 %% Data aqusition with NI 
 
-d = daq("ni")   ;                                                           % Create DataAcquisition Object
-ch=addinput(d,"cDAQ1Mod1","ai23","Voltage");                                % Add channels and set channel properties:'Measurement Type (Voltage)', 
-ch.TerminalConfig = "SingleEnded" ;                                         % 'Terminal  Config (SingleEnded)', if any...
+% d = daq("ni")   ;                                                           % Create DataAcquisition Object
+% ch=addinput(d,"cDAQ1Mod1","ai23","Voltage");                                % Add channels and set channel properties:'Measurement Type (Voltage)', 
+% ch.TerminalConfig = "SingleEnded" ;                                         % 'Terminal  Config (SingleEnded)', if any...
 %% Experiment Set-up
 PER = 0.7 ;                                                                 % Percentage of the inner screen to be used.
 Threshold=0.2;                                                              
@@ -148,8 +150,8 @@ Ay1 = InScr(4)-abs(Bar_RealtimeHeight);
 Ax2 = scrnWidth/2+BarWidth/2;
 Ay2 = InScr(4);
     
-start(d,"continuous");
-n = ceil(d.Rate/10);
+% start(d,"continuous");
+% n = ceil(d.Rate/10);
 
 %startTime = GetSecs; 
 
@@ -158,9 +160,9 @@ while trial_n >0;
 
     % Phase 1: Hold the force (bar) to remain on the green line (threshold).   
     startTime = GetSecs; 
-    if ~DebugMode, io64(ioObj,address,1); pause(0.002); io64(ioObj,address,0); end % stim onset
+    if DebugMode, fprintf('onset of trial'); pause(.1); fprintf('off'); end % where to insert trigger
 
-    start(d,"continuous");
+%     start(d,"continuous");
     while GetSecs < startTime + Threshold_duration;
 
         % inner screen setup
@@ -171,14 +173,14 @@ while trial_n >0;
         Screen('FillRect',theWindow,grey,ErrorShadow);
        
         % data acqusition
-        torque_fatique_data = read(d,n);
-        torque_fatique_data.cDAQ1Mod1_ai23 = -((torque_fatique_data.cDAQ1Mod1_ai23-baseline)*50);
-        torque_fatique = [torque_fatique; torque_fatique_data];
-        bar_position=[bar_position; mean(torque_fatique_data.Variables)*100/MVC];
-        Bar_RealtimeHeight=mean(torque_fatique_data.Variables)*inScrnHeight/MVC;
-        Ay1 = InScr(4)-abs(Bar_RealtimeHeight);        
-        RectAll = floor([Ax1,Ay1,Ax2,Ay2]);
-        cla;
+%         torque_fatique_data = read(d,n);
+%         torque_fatique_data.cDAQ1Mod1_ai23 = -((torque_fatique_data.cDAQ1Mod1_ai23-baseline)*50);
+%         torque_fatique = [torque_fatique; torque_fatique_data];
+%         bar_position=[bar_position; mean(torque_fatique_data.Variables)*100/MVC];
+%         Bar_RealtimeHeight=mean(torque_fatique_data.Variables)*inScrnHeight/MVC;
+         Ay1 = InScr(4)-abs(Bar_RealtimeHeight);        
+         RectAll = floor([Ax1,Ay1,Ax2,Ay2]);
+%         cla;
 
         % realtime bar      
         Screen('FillRect',theWindow,red,RectAll);   
@@ -192,11 +194,10 @@ while trial_n >0;
         DrawFormattedText(theWindow,'0% of MVC (baseline)',InScr(1)+10, InScr(4)+30,black, 255);
         Screen(theWindow,'Flip',[],0);  
     end
-    stop(d);
+%     stop(d);
+    if DebugMode, fprintf('offset of trial'); pause(.1); fprintf('off'); end % where to insert trigger
 
     % Phase 2: Resting state.
-    if ~DebugMode, io64(ioObj,address,2); pause(0.002); io64(ioObj,address,0); end
-
     Screen('FillRect',theWindow,white,ExtraTop);
     Screen('FillRect',theWindow,white,ExtraBottom);
     Screen('FillRect',theWindow,white,InScr);   
@@ -217,9 +218,9 @@ while trial_n >0;
    
     % Phase 3: Perform the force (bar) to reach the orange line (MVC) .
     startTime = GetSecs;
-    if ~DebugMode, io64(ioObj,address,3); pause(0.002); io64(ioObj,address,0); end
+    if DebugMode, fprintf('onset of MVC'); pause(.1); fprintf('off'); end % where to insert trigger
 
-    start(d,"continuous");
+    %start(d,"continuous");
     while GetSecs < startTime + MVC_duration
         % inner screen setup
         Screen('FillRect',theWindow,white,ExtraTop);
@@ -229,14 +230,14 @@ while trial_n >0;
         %DrawFormattedText(theWindow,MVC_newtowns_disp,InScr(3)-300, InScr(2)+50, black,255);
        
         % data acqusition
-        torque_fatique_data = read(d,n);
-        torque_fatique_data.cDAQ1Mod1_ai23 = -((torque_fatique_data.cDAQ1Mod1_ai23-baseline)*50);
-        torque_fatique = [torque_fatique; torque_fatique_data];
-        bar_position=[bar_position; mean(torque_fatique_data.Variables)*100/MVC];
-        Bar_RealtimeHeight=mean(torque_fatique_data.Variables)*inScrnHeight/MVC;
+%         torque_fatique_data = read(d,n);
+%         torque_fatique_data.cDAQ1Mod1_ai23 = -((torque_fatique_data.cDAQ1Mod1_ai23-baseline)*50);
+%         torque_fatique = [torque_fatique; torque_fatique_data];
+%         bar_position=[bar_position; mean(torque_fatique_data.Variables)*100/MVC];
+%         Bar_RealtimeHeight=mean(torque_fatique_data.Variables)*inScrnHeight/MVC;
         Ay1 = InScr(4)-abs(Bar_RealtimeHeight);        
         RectAll = floor([Ax1,Ay1,Ax2,Ay2]);
-        cla;                   
+%         cla;                   
        
         % realtime bar 
         Screen('FillRect',theWindow,red,RectAll);
@@ -251,14 +252,13 @@ while trial_n >0;
         DrawFormattedText(theWindow,'0% of MVC (baseline)',InScr(1)+10, InScr(4)+30,black, 255);
         Screen(theWindow,'Flip',[],0);        
     end
-    stop(d);
-    
+    %stop(d);
+    if DebugMode, fprintf('offset of MVC'); pause(.1); fprintf('off'); end % where to insert trigger
+
     % Phase 4: Resting state and be ready for next trial again. 
     Screen('FillRect',theWindow,white,ExtraTop);
     Screen('FillRect',theWindow,white,ExtraBottom);
     Screen('FillRect',theWindow,white,InScr);
-    if ~DebugMode, io64(ioObj,address,4); pause(0.002); io64(ioObj,address,0); end
-
     Screen(theWindow,'Flip',[],0);
     WaitSecs(5);
     
