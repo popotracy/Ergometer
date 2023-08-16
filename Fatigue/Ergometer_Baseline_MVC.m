@@ -151,7 +151,7 @@ DrawFormattedText(theWindow,text1,'center','center',255);
 Screen(theWindow,'Flip',[],0); 
 WaitSecs(5);
 
-start(d,"continuous"); 
+
 while MVC_measurement_n>0; 
 
     % Ready to do MVC in 5s.
@@ -166,6 +166,8 @@ while MVC_measurement_n>0;
     % MVC for 3s. 
     startTime = GetSecs;
     torque_mvc = [];
+    
+    start(d,"continuous"); 
     
     if ~DebugMode  io64(ioObj,address,1); pause(0.02); io64(ioObj,address,0); end % trigger 1: the onset of MVC measurement.
     
