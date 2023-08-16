@@ -1,17 +1,17 @@
 clear, close all   clc 
 %%
-%load ('Variables.mat', 'MVC','baseline','lang','Subject_ID');     
+load ('Variables.mat', 'MVC','baseline','lang','Subject_ID');     
 DebugMode = 1;
-lang='eng'
-%% DAQ
-% d = daq("ni");                                                              % Create DataAcquisition Object
-% ch=addinput(d,"cDAQ1Mod1","ai23","Voltage");                                % Add channels and set channel properties:'Measurement Type (Voltage)', 
-% ch.TerminalConfig = "SingleEnded";                                          % 'Terminal  Config (SingleEnded)', if any...
+lang='eng'; % If 1,(debug) small screen
+%% DAQ 
+d = daq("ni");                                                              % Create DataAcquisition Object
+ch=addinput(d,"cDAQ1Mod1","ai23","Voltage");                                % Add channels and set channel properties:'Measurement Type (Voltage)', 
+ch.TerminalConfig = "SingleEnded";                                          % 'Terminal  Config (SingleEnded)', if any...
 
 %% Create parallel port handle
 ioObj=io64; %create a parallel port handle
 status=io64(ioObj); %if this returns '0' the port driver is loaded & ready
-address=hex2dec('0378'); %'378' is the default address of LPT1 in hex (convert hexadecimal to decimal number).
+address=hex2dec('03F8'); %'378' is the default address of LPT1 in hex (convert hexadecimal to decimal number).
 
 %% Experiment Set-up
 PER = 0.7 ;                                                                 % Percentage of the inner screen to be used.
@@ -91,35 +91,20 @@ Ay3 = InScr(4)-3*Block_H;
 Ax4 = InScr(3);
 Ay4 = InScr(4)-3*Block_H; 
 
-% 
-% ratio=(Ay2-Ay3)/(Ax3-Ax2);
-% % #1-#2
-% Tunnel1to2=floor([(Ax1-R), Ay1-R, (Ax1+R), Ay1+R]);
-% % #2-#3
-% Tunnel2to3=floor([InScr(1), InScr(4), InScr(3), InScr(4)+R]);
-% % #3-#4
-% Tunnel3to4=floor([InScr(1), InScr(4), InScr(3), InScr(4)+R]);
-
-
 %% Tunnel
 torque_eeg=[];
 Ball_percentage=[];
-trial_n=2;                                                                  
+trial_n=10;                                                                  
 
 
 ramping_t=Threshold*2/0.1; % According to reference: 10% for 2s-ramping.
-pre_ramping_t=ramping_t/2.5;
+pre_ramping_t=ramping_t/2.75;
 velocity=Block_W/pre_ramping_t; 
-percentage_scale=3*Block_W/Threshold;
 
 pre_threshold_t=(inScrnWidth-R)/velocity 
-post_threshold_t=6; % Default is 60s.
+post_threshold_t=60; % Default is 60s.
 ready_t=5;
 Trial_t=pre_threshold_t+post_threshold_t;
-
-
-
-
 
 
 switch lang
@@ -147,84 +132,91 @@ DrawFormattedText(theWindow, text6,'center',750, white,255);
 Screen(theWindow,'Flip',[],0);                                              % 0:delete previous, 1:keep
 WaitSecs(3);
 
-% start(d,"continuous");
-% n = ceil(d.Rate/10);
-
-%%
-while trial_n >0; 
-    KeyPressFcnTest;
+while trial_n >0
+    
+    if DebugMode  io64(ioObj,address,1); pause(0.02); io64(ioObj,address,0); end % trigger 1: the onset of MVC measurement.
     
     startTime = GetSecs; 
+    start(d,"continuous");
+    n = ceil(d.Rate/10);
     
     while GetSecs <= startTime + Trial_t
-        
+        KeyPressFcnTest;
         Screen('FillRect',theWindow,white,InScr);
         Screen('FillRect',theWindow,white,ExtraTop);
         Screen('FillRect',theWindow,white,ExtraBottom);
-
-        
+      
         ratio=(Ay2-Ay3)/(Ax3-Ax2);
-        for i=1:1:(Ax2-Ax1)
-            Screen('FillOval', theWindow, red,[(Ax1-R)+i, Ay1-R, (Ax1+R)+i, Ay1+R]);
+        for i=1:1:(Ax2-Ax1), Screen('FillOval', theWindow, red,[(Ax1-R)+i, Ay1-R, (Ax1+R)+i, Ay1+R]);end 
+        for i=1:1:(Ax3-Ax2), Screen('FillOval', theWindow, red,[(Ax2-R)+i, (Ay2-R)-i*ratio, (Ax2+R)+i, (Ay2+R)-i*ratio]);end 
+        for i=1:1:(Ax4-Ax3), Screen('FillOval', theWindow, red,[(Ax3-R)+i, Ay3-R, (Ax3+R)+i, Ay3+R]);end
+        
+        while round(GetSecs-startTime,2) == round(pre_ramping_t,2);
+            if DebugMode  io64(ioObj,address,2); pause(0.02); io64(ioObj,address,0); end % trigger 1: the onset of MVC measurement.
         end
         
-        for i=1:1:(Ax3-Ax2)
-            Screen('FillOval', theWindow, red,[(Ax2-R)+i, (Ay2-R)-i*ratio, (Ax2+R)+i, (Ay2+R)-i*ratio]);
+        while round(GetSecs-startTime,2) == round(pre_threshold_t,2); 
+            if DebugMode  io64(ioObj,address,3); pause(0.02); io64(ioObj,address,0); end % trigger 1: the onset of MVC measurement.
         end
-        
-        for i=1:1:(Ax4-Ax3)
-            Screen('FillOval', theWindow, red,[(Ax3-R)+i, Ay3-R, (Ax3+R)+i, Ay3+R]);
-        end
+       
 
       % data acqusition
-%     torque_eeg_data = read(d,n);
-%     torque_eeg_data.cDAQ1Mod1_ai23 = -((torque_eeg_data.cDAQ1Mod1_ai23-baseline)*50);
-%     torque_eeg = [torque_eeg; torque_eeg_data];
-%     Ball_percentage=[Ball_percentage; mean(torque_eeg_data.Variables)*100/MVC];
+      torque_eeg_data = read(d,n);
+      torque_eeg_data.cDAQ1Mod1_ai23 = -((torque_eeg_data.cDAQ1Mod1_ai23-baseline)*50);
+      torque_eeg = [torque_eeg; torque_eeg_data];
+      Ball_percentage=[Ball_percentage; mean(torque_eeg_data.Variables)*100/MVC];
       
-    
       if GetSecs-startTime <=  pre_threshold_t
           percentage_scale=3*Block_H/Threshold;
-          Ball_RealtimeHeight=.05*percentage_scale;
-          %Ball_RealtimeHeight=mean(torque_eeg_data.Variables)*percentage_scale/MVC;
+          %Ball_RealtimeHeight=0.1*percentage_scale;
+          Ball_RealtimeHeight=mean(torque_eeg_data.Variables)*percentage_scale/MVC;
           Bx1=(Ax1-R)+velocity*(GetSecs-startTime);
           Bx2=(Ax1+R)+velocity*(GetSecs-startTime);
           By1=(Ay2-R)-abs(Ball_RealtimeHeight);
           By2=(Ay2+R)-abs(Ball_RealtimeHeight);        
       else
           percentage_scale=Block_H/(1-Threshold);
-          Ball_RealtimeHeight=(0.2-0.1)*percentage_scale;
-          %Ball_RealtimeHeight=mean(torque_eeg_data.Variables)*percentage_scale/MVC;
           Bx1=(Ax3+Ax4)/2-R;
           Bx2=(Ax3+Ax4)/2+R;
+          %Ball_RealtimeHeight=(0.1-0.1)*percentage_scale;
+          if mean(torque_eeg_data.Variables)/MVC >= Threshold
+          Ball_RealtimeHeight=mean(torque_eeg_data.Variables)*percentage_scale/MVC;      
           By1=(Ay4-R)-abs(Ball_RealtimeHeight);
-          By2=(Ay4+R)-abs(Ball_RealtimeHeight);        
+          By2=(Ay4+R)-abs(Ball_RealtimeHeight);  
+          else
+          percentage_scale=3*Block_H/Threshold;
+          Ball_RealtimeHeight=mean(torque_eeg_data.Variables)*percentage_scale/MVC;
+          By1=(Ay2-R)-abs(Ball_RealtimeHeight);
+          By2=(Ay2+R)-abs(Ball_RealtimeHeight); 
+          end
       end     
       Ball=floor([Bx1, By1, Bx2, By2]);
       cla
+      
+      %realtime ball
+      Screen('FillOval', theWindow, black,Ball); 
+      % timer
+      timerdisplay=num2str(round(GetSecs-startTime,1));
+      DrawFormattedText(theWindow,timerdisplay,'center','center', black,255); 
+      %DrawFormattedText(theWindow,'0%',Ax1+20,Ay2-50, black,255);
+      Threshold_display=[num2str(Threshold*100) '%'];
+      DrawFormattedText(theWindow,Threshold_display,Ax1+20,Ay3+20, black,255); 
+      
+      Screen('DrawLine',theWindow,grey,Ax1, Ay1, Ax2, Ay2,5);
+      Screen('DrawLine',theWindow,grey,Ax2, Ay2, Ax3, Ay3 ,5);    
+      Screen('DrawLine',theWindow,grey,Ax3, Ay3, Ax4, Ay4 ,5);
+      Screen(theWindow,'Flip',[],0);
     
-
-    %realtime ball
-    Screen('FillOval', theWindow, black,Ball); 
-    % timer
-    timerdisplay=num2str(round(GetSecs-startTime));
-    DrawFormattedText(theWindow,timerdisplay,'center','center', black,255);  
- 
-    %DrawFormattedText(theWindow,'0%',Ax1+20,Ay2-50, black,255);
-    Threshold_display=[num2str(Threshold*100) '%'];
-    DrawFormattedText(theWindow,Threshold_display,Ax1+20,Ay3+20, black,255); 
-
-    Screen('DrawLine',theWindow,grey,Ax1, Ay1, Ax2, Ay2,5);
-    Screen('DrawLine',theWindow,grey,Ax2, Ay2, Ax3, Ay3 ,5);    
-    Screen('DrawLine',theWindow,grey,Ax3, Ay3, Ax4, Ay4 ,5);
-    Screen(theWindow,'Flip',[],0);
     end
     
-        Screen('FillRect',theWindow,white,ExtraTop);
-        Screen('FillRect',theWindow,white,ExtraBottom);
-        Screen('FillRect',theWindow,white,InScr);
-        Screen(theWindow,'Flip',[],0);
-        WaitSecs(5);
+    stop(d);
+    if DebugMode  io64(ioObj,address,4); pause(0.02); io64(ioObj,address,0); end % trigger 1: the onset of MVC measurement.
+    
+    Screen('FillRect',theWindow,white,ExtraTop);
+    Screen('FillRect',theWindow,white,ExtraBottom);
+    Screen('FillRect',theWindow,white,InScr);
+    Screen(theWindow,'Flip',[],0);
+    WaitSecs(5);
     
     startTime = GetSecs; 
     while GetSecs < startTime + ready_t
@@ -238,11 +230,11 @@ while trial_n >0;
         Screen(theWindow,'Flip',[],0);                  
     end
     
-   trial_n=trial_n-1;
+    trial_n=trial_n-1;
     
 end 
 
-% stop(d);
+
 
 %%
 Screen('CloseAll');
