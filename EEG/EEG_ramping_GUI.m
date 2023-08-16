@@ -11,7 +11,7 @@ ch.TerminalConfig = "SingleEnded";                                          % 'T
 %% Create parallel port handle
 ioObj=io64; %create a parallel port handle
 status=io64(ioObj); %if this returns '0' the port driver is loaded & ready
-address=hex2dec('0378'); %'378' is the default address of LPT1 in hex (convert hexadecimal to decimal number).
+address=hex2dec('03F8'); %'378' is the default address of LPT1 in hex (convert hexadecimal to decimal number).
 
 %% Experiment Set-up
 PER = 0.7 ;                                                                 % Percentage of the inner screen to be used.
@@ -94,7 +94,7 @@ Ay4 = InScr(4)-3*Block_H;
 %% Tunnel
 torque_eeg=[];
 Ball_percentage=[];
-trial_n=2;                                                                  
+trial_n=10;                                                                  
 
 
 ramping_t=Threshold*2/0.1; % According to reference: 10% for 2s-ramping.
@@ -102,7 +102,7 @@ pre_ramping_t=ramping_t/2.75;
 velocity=Block_W/pre_ramping_t; 
 
 pre_threshold_t=(inScrnWidth-R)/velocity 
-post_threshold_t=6; % Default is 60s.
+post_threshold_t=60; % Default is 60s.
 ready_t=5;
 Trial_t=pre_threshold_t+post_threshold_t;
 
@@ -132,18 +132,14 @@ DrawFormattedText(theWindow, text6,'center',750, white,255);
 Screen(theWindow,'Flip',[],0);                                              % 0:delete previous, 1:keep
 WaitSecs(3);
 
-
-
-%%
-while trial_n >0, 
+while trial_n >0
     KeyPressFcnTest;
+    if DebugMode, fprintf('onset of a trial '); pause(.1); fprintf('off '); end % where to insert trigger
     
     startTime = GetSecs; 
     start(d,"continuous");
     n = ceil(d.Rate/10);
     
-    if DebugMode, fprintf('onset of a trial '); pause(.1); fprintf('off '); end % where to insert trigger
-
     while GetSecs <= startTime + Trial_t
         
         Screen('FillRect',theWindow,white,InScr);
@@ -180,12 +176,19 @@ while trial_n >0,
           By2=(Ay2+R)-abs(Ball_RealtimeHeight);        
       else
           percentage_scale=Block_H/(1-Threshold);
-          %Ball_RealtimeHeight=(0.1-0.1)*percentage_scale;
-          Ball_RealtimeHeight=mean(torque_eeg_data.Variables)*percentage_scale/MVC;
           Bx1=(Ax3+Ax4)/2-R;
           Bx2=(Ax3+Ax4)/2+R;
+          %Ball_RealtimeHeight=(0.1-0.1)*percentage_scale;
+          if mean(torque_eeg_data.Variables)/MVC >= Threshold
+          Ball_RealtimeHeight=mean(torque_eeg_data.Variables)*percentage_scale/MVC;      
           By1=(Ay4-R)-abs(Ball_RealtimeHeight);
-          By2=(Ay4+R)-abs(Ball_RealtimeHeight);        
+          By2=(Ay4+R)-abs(Ball_RealtimeHeight);  
+          else
+          percentage_scale=3*Block_H/Threshold;
+          Ball_RealtimeHeight=mean(torque_eeg_data.Variables)*percentage_scale/MVC;
+          By1=(Ay2-R)-abs(Ball_RealtimeHeight);
+          By2=(Ay2+R)-abs(Ball_RealtimeHeight); 
+          end
       end     
       Ball=floor([Bx1, By1, Bx2, By2]);
       cla
