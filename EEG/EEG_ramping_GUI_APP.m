@@ -9,9 +9,9 @@ ch=addinput(d,"cDAQ1Mod1","ai23","Voltage");                                % Ad
 ch.TerminalConfig = "SingleEnded";                                          % 'Terminal  Config (SingleEnded)', if any...
 
 %% Create parallel port handle
-ioObj=io64; %create a parallel port handle
-status=io64(ioObj); %if this returns '0' the port driver is loaded & ready
-address=hex2dec('03F8'); %'378' is the default address of LPT1 in hex (convert hexadecimal to decimal number).
+% ioObj=io64; %create a parallel port handle
+% status=io64(ioObj); %if this returns '0' the port driver is loaded & ready
+% address=hex2dec('03F8'); %'378' is the default address of LPT1 in hex (convert hexadecimal to decimal number).
 
 %% Experiment Set-up
 PER = 0.7 ;                                                                 % Percentage of the inner screen to be used.
@@ -134,7 +134,7 @@ WaitSecs(3);
 
 while trial_n >0
     
-    if DebugMode  io64(ioObj,address,1); pause(0.02); io64(ioObj,address,0); end % trigger 1: the onset of MVC measurement.
+    if ~DebugMode  io64(ioObj,address,1); pause(0.02); io64(ioObj,address,0); end % trigger 1: the onset of MVC measurement.
     
     startTime = GetSecs; 
     start(d,"continuous");
@@ -152,11 +152,11 @@ while trial_n >0
         for i=1:1:(Ax4-Ax3), Screen('FillOval', theWindow, red,[(Ax3-R)+i, Ay3-R, (Ax3+R)+i, Ay3+R]);end
         
         while round(GetSecs-startTime,2) == round(pre_ramping_t,2);
-            if DebugMode  io64(ioObj,address,2); pause(0.02); io64(ioObj,address,0); end % trigger 1: the onset of MVC measurement.
+            if ~DebugMode  io64(ioObj,address,2); pause(0.005); io64(ioObj,address,0); end % trigger 1: the onset of MVC measurement.
         end
         
         while round(GetSecs-startTime,2) == round(pre_threshold_t,2); 
-            if DebugMode  io64(ioObj,address,3); pause(0.02); io64(ioObj,address,0); end % trigger 1: the onset of MVC measurement.
+            if ~DebugMode  io64(ioObj,address,3); pause(0.005); io64(ioObj,address,0); end % trigger 1: the onset of MVC measurement.
         end
        
 
@@ -210,7 +210,7 @@ while trial_n >0
     end
     
     stop(d);
-    if DebugMode  io64(ioObj,address,4); pause(0.02); io64(ioObj,address,0); end % trigger 1: the onset of MVC measurement.
+    if ~DebugMode  io64(ioObj,address,4); pause(0.02); io64(ioObj,address,0); end % trigger 1: the onset of MVC measurement.
     
     Screen('FillRect',theWindow,white,ExtraTop);
     Screen('FillRect',theWindow,white,ExtraBottom);
