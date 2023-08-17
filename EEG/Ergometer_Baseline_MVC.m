@@ -126,8 +126,8 @@ baseline=mean(torque_cal.cDAQ1Mod1_ai23);                                   % Ba
 
 %% MVC measurement 
 
-MVC_duration = 3;                                                           % 3 seconds as default
-Rest_duration = 180;                                                          %  1min 30seconds as default.
+MVC_duration = 3;                                                            % 3 seconds as default
+Rest_duration = 60;                                                          %  1min as default.
 Ready_duration = 5;
 MVC_measurement_n=3;                                                        % Number of trials for measuring MVC. 
 Nm=50;                                                                      % Transform the voltage to torque force (based on the value from the ergoneter brochure).
@@ -183,7 +183,7 @@ while MVC_measurement_n>0;
         DrawFormattedText(theWindow,[text3 timer_disp],'center','center', white,255);
         Screen(theWindow,'Flip',[],0);                                      % 0:delete previous, 1:keep
     end ;
-    
+    stop(d);
     if ~DebugMode  io64(ioObj,address,2); pause(0.02); io64(ioObj,address,0); end % trigger 2: the offset of MVC measurement.
 
     save([pwd,'/',Subject_ID,'_MVC_',num2str(MVC_measurement_n),'.mat'],"torque_mvc"); % Save the MVC for the subject. 
@@ -200,7 +200,7 @@ while MVC_measurement_n>0;
     MVC_measurement_n=MVC_measurement_n-1;
 end
 
-stop(d);
+
 
 MVC=max(MVCC);                                                              % Find the largest MVC value in the measurements. 
 DrawFormattedText(theWindow,text5,'center','center', white,255);
@@ -210,5 +210,8 @@ Screen(theWindow,'Flip',[],0);                                              % 0:
 save([pwd,'/Variables.mat']);                                               % Save the variables for further experiment. 
 KeyPressFcnTest
 
+if ~DebugMode 
 fclose(t) ;
+end 
+
 Screen('CloseAll');

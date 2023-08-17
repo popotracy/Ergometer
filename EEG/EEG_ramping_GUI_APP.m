@@ -1,4 +1,5 @@
-clear, close all   clc 
+clear, close all,  clc 
+KeyPressFcnTest
 %%
 load ('Variables.mat', 'MVC','baseline','lang','Subject_ID');     
 DebugMode = 1;
@@ -9,13 +10,18 @@ ch=addinput(d,"cDAQ1Mod1","ai23","Voltage");                                % Ad
 ch.TerminalConfig = "SingleEnded";                                          % 'Terminal  Config (SingleEnded)', if any...
 
 %% Create parallel port handle
-% ioObj=io64; %create a parallel port handle
-% status=io64(ioObj); %if this returns '0' the port driver is loaded & ready
-% address=hex2dec('03F8'); %'378' is the default address of LPT1 in hex (convert hexadecimal to decimal number).
+if ~DebugMode
+t = serial('COM1') ;
+ioObj=io64;%create a parallel port handle
+status=io64(ioObj);%if this returns '0' the port driver is loaded & ready
+address=hex2dec('0378') ;
 
+fopen(t) ;
+end
 %% Experiment Set-up
 PER = 0.7 ;                                                                 % Percentage of the inner screen to be used.
-Threshold=0.1;                                                              
+Threshold=0.1;  
+error=0.02;
 
 % other color
 green   = [0 255 0];
@@ -103,7 +109,7 @@ velocity=Block_W/pre_ramping_t;
 
 pre_threshold_t=(inScrnWidth-R)/velocity 
 post_threshold_t=60; % Default is 60s.
-ready_t=5;
+ready_t=60;
 Trial_t=pre_threshold_t+post_threshold_t;
 
 
@@ -133,7 +139,7 @@ Screen(theWindow,'Flip',[],0);                                              % 0:
 WaitSecs(3);
 
 while trial_n >0
-    
+         KeyPressFcnTest;   
     if ~DebugMode  io64(ioObj,address,1); pause(0.02); io64(ioObj,address,0); end % trigger 1: the onset of MVC measurement.
     
     startTime = GetSecs; 
@@ -141,7 +147,7 @@ while trial_n >0
     n = ceil(d.Rate/10);
     
     while GetSecs <= startTime + Trial_t
-        KeyPressFcnTest;
+
         Screen('FillRect',theWindow,white,InScr);
         Screen('FillRect',theWindow,white,ExtraTop);
         Screen('FillRect',theWindow,white,ExtraBottom);
@@ -175,12 +181,14 @@ while trial_n >0
           By1=(Ay2-R)-abs(Ball_RealtimeHeight);
           By2=(Ay2+R)-abs(Ball_RealtimeHeight);        
       else
-          percentage_scale=Block_H/(1-Threshold);
           Bx1=(Ax3+Ax4)/2-R;
           Bx2=(Ax3+Ax4)/2+R;
           %Ball_RealtimeHeight=(0.1-0.1)*percentage_scale;
-          if mean(torque_eeg_data.Variables)/MVC >= Threshold
-          Ball_RealtimeHeight=mean(torque_eeg_data.Variables)*percentage_scale/MVC;      
+          if mean(torque_eeg_data.Variables)/MVC >= Threshold+error;
+          percentage_scale=Block_H/(1-Threshold);
+          Ball_RealtimeHeight=(mean(torque_eeg_data.Variables)/MVC-Threshold-error)*percentage_scale; 
+          percentage_scale=3*Block_H/Threshold;
+          Ball_RealtimeHeight=Ball_RealtimeHeight+(Threshold+error)*percentage_scale
           By1=(Ay4-R)-abs(Ball_RealtimeHeight);
           By2=(Ay4+R)-abs(Ball_RealtimeHeight);  
           else
@@ -195,12 +203,14 @@ while trial_n >0
       
       %realtime ball
       Screen('FillOval', theWindow, black,Ball); 
+      if DebugMode
       % timer
       timerdisplay=num2str(round(GetSecs-startTime,1));
       DrawFormattedText(theWindow,timerdisplay,'center','center', black,255); 
       %DrawFormattedText(theWindow,'0%',Ax1+20,Ay2-50, black,255);
       Threshold_display=[num2str(Threshold*100) '%'];
       DrawFormattedText(theWindow,Threshold_display,Ax1+20,Ay3+20, black,255); 
+      end 
       
       Screen('DrawLine',theWindow,grey,Ax1, Ay1, Ax2, Ay2,5);
       Screen('DrawLine',theWindow,grey,Ax2, Ay2, Ax3, Ay3 ,5);    
@@ -237,4 +247,12 @@ end
 
 
 %%
+DrawFormattedText(theWindow,'Thank you for your participation.','center','center', white,255);
+Screen(theWindow,'Flip',[],0);                                              % 0:delete previous, 1:keep
+WaitSecs(5);
+
+
+if ~DebugMode 
+fclose(t) ;
+end 
 Screen('CloseAll');
