@@ -1,20 +1,28 @@
 clear, close all,  clc 
 KeyPressFcnTest
 %%
-load ('Variables.mat', 'MVC','baseline','lang','Subject_ID');     
 DebugMode = 1;
-lang='eng'; % If 1,(debug) small screen
+DAQMode=1;
+
+if DebugMode, 
+    MVC=184;
+    baseline=0.58
+    lang='eng'; % If 1,(debug) small screen
+else
+load ('Variables.mat', 'MVC','baseline','lang','Subject_ID');    
+end
 %% DAQ 
+if DAQMode
 d = daq("ni");                                                              % Create DataAcquisition Object
 ch=addinput(d,"cDAQ1Mod1","ai23","Voltage");                                % Add channels and set channel properties:'Measurement Type (Voltage)', 
 ch.TerminalConfig = "SingleEnded";                                          % 'Terminal  Config (SingleEnded)', if any...
-
+end
 %% Create parallel port handle
 if ~DebugMode
 t = serial('COM1') ;
-ioObj=io64;%create a parallel port handle
+ioObj=io64; %create a parallel port handle
 status=io64(ioObj);%if this returns '0' the port driver is loaded & ready
-address=hex2dec('0378') ;
+address=hex2dec('03F8') ;
 
 fopen(t) ;
 end
@@ -70,10 +78,6 @@ ExtraTop=floor([InScr(1), InScr(2)-R, InScr(3), InScr(2)]);
 ExtraBottom=floor([InScr(1), InScr(4), InScr(3), InScr(4)+R]);
 
 %% EEG experiment variables
-
-% max_percentage=0.5;
-% Cursor_height=Threshold*inScrnHeight/max_percentage;
-
 
 % tunnel
 
@@ -139,15 +143,29 @@ Screen(theWindow,'Flip',[],0);                                              % 0:
 WaitSecs(3);
 
 while trial_n >0
-         KeyPressFcnTest;   
+    Onset_ramping=true; 
+    Offset_ramping=true;
+    
     if ~DebugMode  io64(ioObj,address,1); pause(0.02); io64(ioObj,address,0); end % trigger 1: the onset of MVC measurement.
     
     startTime = GetSecs; 
-    start(d,"continuous");
-    n = ceil(d.Rate/10);
+    
+    if DAQMode, start(d,"continuous"); n = ceil(d.Rate/10); end
     
     while GetSecs <= startTime + Trial_t
-
+        
+        if DebugMode
+            if GetSecs-startTime>=round(pre_ramping_t,2) && Onset_ramping == true
+              io64(ioObj,address,2); pause(0.02); io64(ioObj,address,0);
+              Onset_ramping = false ;
+            end
+            
+            if GetSecs-startTime >=round(pre_threshold_t,2) && Offset_ramping == true
+              io64(ioObj,address,2); pause(0.02); io64(ioObj,address,0);
+              Offset_ramping = false ;
+            end
+        end
+        
         Screen('FillRect',theWindow,white,InScr);
         Screen('FillRect',theWindow,white,ExtraTop);
         Screen('FillRect',theWindow,white,ExtraBottom);
@@ -156,50 +174,34 @@ while trial_n >0
         for i=1:1:(Ax2-Ax1), Screen('FillOval', theWindow, red,[(Ax1-R)+i, Ay1-R, (Ax1+R)+i, Ay1+R]);end 
         for i=1:1:(Ax3-Ax2), Screen('FillOval', theWindow, red,[(Ax2-R)+i, (Ay2-R)-i*ratio, (Ax2+R)+i, (Ay2+R)-i*ratio]);end 
         for i=1:1:(Ax4-Ax3), Screen('FillOval', theWindow, red,[(Ax3-R)+i, Ay3-R, (Ax3+R)+i, Ay3+R]);end
-        
-        while round(GetSecs-startTime,2) == round(pre_ramping_t,2);
-            if ~DebugMode  io64(ioObj,address,2); pause(0.005); io64(ioObj,address,0); end % trigger 1: the onset of MVC measurement.
-        end
-        
-        while round(GetSecs-startTime,2) == round(pre_threshold_t,2); 
-            if ~DebugMode  io64(ioObj,address,3); pause(0.005); io64(ioObj,address,0); end % trigger 1: the onset of MVC measurement.
-        end
        
 
       % data acqusition
+      if DAQMode 
       torque_eeg_data = read(d,n);
       torque_eeg_data.cDAQ1Mod1_ai23 = -((torque_eeg_data.cDAQ1Mod1_ai23-baseline)*50);
       torque_eeg = [torque_eeg; torque_eeg_data];
       Ball_percentage=[Ball_percentage; mean(torque_eeg_data.Variables)*100/MVC];
-      
-      if GetSecs-startTime <=  pre_threshold_t
-          percentage_scale=3*Block_H/Threshold;
-          %Ball_RealtimeHeight=0.1*percentage_scale;
-          Ball_RealtimeHeight=mean(torque_eeg_data.Variables)*percentage_scale/MVC;
-          Bx1=(Ax1-R)+velocity*(GetSecs-startTime);
-          Bx2=(Ax1+R)+velocity*(GetSecs-startTime);
-          By1=(Ay2-R)-abs(Ball_RealtimeHeight);
-          By2=(Ay2+R)-abs(Ball_RealtimeHeight);        
+      percentage_scale=3*Block_H/Threshold;
+      Ball_RealtimeHeight=mean(torque_eeg_data.Variables)*percentage_scale/MVC;
+
+      if  GetSecs-startTime <= pre_threshold_t
+      Bx1=(Ax1-R)+velocity*(GetSecs-startTime);
+      Bx2=(Ax1+R)+velocity*(GetSecs-startTime);    
       else
-          Bx1=(Ax3+Ax4)/2-R;
-          Bx2=(Ax3+Ax4)/2+R;
-          %Ball_RealtimeHeight=(0.1-0.1)*percentage_scale;
-          if mean(torque_eeg_data.Variables)/MVC >= Threshold+error;
+          Bx1=(Ax3+Ax4)/2-R; % stay in the end
+          Bx2=(Ax3+Ax4)/2+R; % stay in the end
+          if mean(torque_eeg_data.Variables)/MVC > Threshold+error
+          starting_H=(Threshold+error)*percentage_scale;
           percentage_scale=Block_H/(1-Threshold);
-          Ball_RealtimeHeight=(mean(torque_eeg_data.Variables)/MVC-Threshold-error)*percentage_scale; 
-          percentage_scale=3*Block_H/Threshold;
-          Ball_RealtimeHeight=Ball_RealtimeHeight+(Threshold+error)*percentage_scale
-          By1=(Ay4-R)-abs(Ball_RealtimeHeight);
-          By2=(Ay4+R)-abs(Ball_RealtimeHeight);  
-          else
-          percentage_scale=3*Block_H/Threshold;
-          Ball_RealtimeHeight=mean(torque_eeg_data.Variables)*percentage_scale/MVC;
-          By1=(Ay2-R)-abs(Ball_RealtimeHeight);
-          By2=(Ay2+R)-abs(Ball_RealtimeHeight); 
+          Ball_RealtimeHeight=starting_H+(mean(torque_eeg_data.Variables)/MVC-Threshold-error)*percentage_scale;  
           end
-      end     
+      end 
+      By1=(Ay2-R)-Ball_RealtimeHeight;
+      By2=(Ay2+R)-Ball_RealtimeHeight; 
       Ball=floor([Bx1, By1, Bx2, By2]);
       cla
+      end
       
       %realtime ball
       Screen('FillOval', theWindow, black,Ball); 
@@ -219,7 +221,8 @@ while trial_n >0
     
     end
     
-    stop(d);
+    if DAQMode, stop(d), end
+    
     if ~DebugMode  io64(ioObj,address,4); pause(0.02); io64(ioObj,address,0); end % trigger 1: the onset of MVC measurement.
     
     Screen('FillRect',theWindow,white,ExtraTop);
