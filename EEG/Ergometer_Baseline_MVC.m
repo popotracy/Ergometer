@@ -4,11 +4,11 @@
 %
 % You can uncomment the coding to enter the name of the subject_ID and the preferred language...
 % 
-% The baseline will be firstly started and saved for the MVC measurement. 
+% The Baseline will be firstly started and saved for the MVC measurement. 
 % Subject should relax and sit still while during the recording...
 % Afterward, subject squeezes as hard as possible for at least two times for the MVC measurements.
 % 
-% The baseline and three MVC measurements will be saved in the current folder.
+% The Baseline and three MVC measurements will be saved in the current folder.
 % The variables in the workspace will be saved and exported for the further usage. 
 %
 % Paramenters:
@@ -28,9 +28,9 @@
 %     MVC_measurement_n         : 3 times 
 %   
 % OUTPUT:
-%     SubjectID_Baseline.mat    : the recorded torque as the baseline.
+%     SubjectID_Baseline.mat    : the recorded torque as the Baseline.
 %     SubjectID_MVC_n.mat       : the recorded torque as the maximal voluntary contraction.
-%     Variables.mat             : the screen setup variables, calculated baseline and MVC values for the fatigue experiment. 
+%     Variables.mat             : the screen setup variables, calculated Baseline and MVC values for the fatigue experiment. 
 
 clear, close all,  clc 
 KeyPressFcnTest
@@ -46,7 +46,7 @@ ch.TerminalConfig = "SingleEnded";                                          % 'T
 end
 %% Participant ID
 Subject_ID='EEG'
-lang='eng';
+Lang='eng';
 
 %Subject_ID = input('Please enter the Subject ID number:','s');             % You can uncomment this to creat the file for the subject. 
 
@@ -61,7 +61,7 @@ ioObj=io64;%create a parallel port handle
 status=io64(ioObj);%if this returns '0' the port driver is loaded & ready
 address=hex2dec('0378') ;
 
-fopen(t) ;
+%fopen(t) ;
 end
 
 %% Screen set-up
@@ -91,9 +91,9 @@ oldTextSize=Screen('TextSize', theWindow, 30);                              % Co
 Baseline_duration = 10;
 torque_cal=[];
 
-switch lang
+switch Lang
     case 'eng'
-        text1 = ['Prepare for the baseline measurement...']
+        text1 = ['Prepare for the Baseline measurement...']
         text2 = ['Please relax and stay still on the ergometer... '];
         text3 = ['Baseline measurement is done.']
     case 'fr'
@@ -128,7 +128,7 @@ Screen(theWindow,'Flip',[],0);
 WaitSecs(2);
 
 save([pwd,'/',Subject_ID,'_Baseline.mat'],"torque_cal"); 
-baseline=mean(torque_cal.cDAQ1Mod1_ai23);                                   % Baseline is caculated and saved in the workspace. 
+Baseline=mean(torque_cal.cDAQ1Mod1_ai23);                                   % Baseline is caculated and saved in the workspace. 
 
 %% MVC measurement 
 
@@ -140,7 +140,7 @@ Nm=50;                                                                      % Tr
 MVCC=[]; i=1;                                                               % Record the MVC values of each measurement in the matrix. 
 
 
-switch lang
+switch Lang
     case 'eng'
         text1 = ['Be ready to push your arm as hard as possible for the MVC measurement.']
         text2 = ['Ready...'];
@@ -177,7 +177,7 @@ while MVC_measurement_n>0;
         if ~DebugMode  io64(ioObj,address,1); pause(0.02); io64(ioObj,address,0); end % trigger 1: the onset of MVC measurement.       
         while GetSecs < startTime + MVC_duration
             torque_mvc_data = read(d,n);
-            torque_mvc_data.cDAQ1Mod1_ai23 = (torque_mvc_data.cDAQ1Mod1_ai23-baseline)*Nm;
+            torque_mvc_data.cDAQ1Mod1_ai23 = (torque_mvc_data.cDAQ1Mod1_ai23-Baseline)*Nm;
             torque_mvc_data.cDAQ1Mod1_ai23=-(torque_mvc_data.cDAQ1Mod1_ai23);
             torque_mvc = [torque_mvc; torque_mvc_data];
             cla;
@@ -213,6 +213,6 @@ Screen(theWindow,'Flip',[],0);                                              % 0:
 save([pwd,'/Variables.mat']);                                               % Save the variables for further experiment. 
 KeyPressFcnTest
 
-if ~DebugMode fclose(t); end 
+%if ~DebugMode fclose(t); end 
 
 Screen('CloseAll');

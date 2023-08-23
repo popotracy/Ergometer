@@ -37,7 +37,7 @@ DebugMode = 0;
 DAQMode=1;
 
 if DebugMode, MVC=184; Baseline=0.58; Lang='eng'; % If 1,(debug) small screen
-else load ('Variables.mat', 'MVC','baseline','lang','Subject_ID');    
+else load ('Variables.mat', 'MVC','baseline','Lang','Subject_ID');    
 end
 %% DAQ 
 if DAQMode
@@ -101,8 +101,8 @@ Block_H=inScrnHeight/4;
 R=Block_H/4;
 
 % Extra retangular
-ExtraTop=floor([InScr(1), InScr(2)-R, InScr(3), InScr(2)]);
-ExtraBottom=floor([InScr(1), InScr(4), InScr(3), InScr(4)+R]);
+ExtraTop=floor([InScr(1), InScr(2)-1.3*R, InScr(3), InScr(2)]);
+ExtraBottom=floor([InScr(1), InScr(4), InScr(3), InScr(4)+1.3*R]);
 
 %% EEG experiment variables
 
@@ -199,9 +199,9 @@ while Trial_n >0
         Screen('FillRect',theWindow,white,ExtraBottom);
         %Tunnel setup
         ratio=(Ay2-Ay3)/(Ax3-Ax2);
-        for i=1:1:(Ax2-Ax1), Screen('FillOval', theWindow, red,[(Ax1-R)+i, Ay1-R, (Ax1+R)+i, Ay1+R]);end 
-        for i=1:1:(Ax3-Ax2), Screen('FillOval', theWindow, red,[(Ax2-R)+i, (Ay2-R)-i*ratio, (Ax2+R)+i, (Ay2+R)-i*ratio]);end 
-        for i=1:1:(Ax4-Ax3), Screen('FillOval', theWindow, red,[(Ax3-R)+i, Ay3-R, (Ax3+R)+i, Ay3+R]);end
+        for i=1:1:(Ax2-Ax1), Screen('FillOval', theWindow, red,[(Ax1-1.3*R)+i, Ay1-1.3*R, (Ax1+1.3*R)+i, Ay1+1.3*R]);end 
+        for i=1:1:(Ax3-Ax2), Screen('FillOval', theWindow, red,[(Ax2-1.3*R)+i, (Ay2-1.3*R)-i*ratio, (Ax2+1.3*R)+i, (Ay2+1.3*R)-i*ratio]);end 
+        for i=1:1:(Ax4-Ax3), Screen('FillOval', theWindow, red,[(Ax3-1.3*R)+i, Ay3-1.3*R, (Ax3+1.3*R)+i, Ay3+1.3*R]);end
        
 
       %Data acqusition
@@ -262,13 +262,13 @@ while Trial_n >0
     WaitSecs(5);
     
     startTime = GetSecs; 
-    while GetSecs < startTime + ready_t
+    while GetSecs < startTime + Rest_t
         %inner screen setup
         Screen('FillRect',theWindow,white,ExtraTop);
         Screen('FillRect',theWindow,white,ExtraBottom);
         Screen('FillRect',theWindow,white,InScr);
         %timer
-        timer_disp=[num2str(ready_t-round(GetSecs-startTime)),'s.'];
+        timer_disp=[num2str(Rest_t-round(GetSecs-startTime)),'s.'];
         DrawFormattedText(theWindow,[text5 timer_disp],'center','center', black,255); 
         Screen(theWindow,'Flip',[],0);                  
     end   
