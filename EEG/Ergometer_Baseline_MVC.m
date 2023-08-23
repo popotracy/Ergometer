@@ -1,8 +1,8 @@
-% Ergometer_Cal_MVC.m
+% Ergometer_Baseline_MVC.m
 %  
-% 13 July, 2023
+% 23 Aug., 2023
 %
-% Please enter the name of the subject and the preferred language...
+% You can uncomment the coding to enter the name of the subject_ID and the preferred language...
 % 
 % The baseline will be firstly started and saved for the MVC measurement. 
 % Subject should relax and sit still while during the recording...
@@ -12,8 +12,8 @@
 % The variables in the workspace will be saved and exported for the further usage. 
 %
 % Paramenters:
-%     Subject_ID    
-%     lang (fr/eng)
+%     Subject_ID :   "EEG"   
+%     lang (fr/eng): "eng"
 %
 % Triggers:
 %     "0" : close the portal handle.
@@ -28,26 +28,30 @@
 %     MVC_measurement_n         : 3 times 
 %   
 % OUTPUT:
-%     SubjectID_Baseline.mat : the recorded torque as baseline.
-%     SubjectID_MVC_n.mat       : the recorded torque as maximal voluntary contraction.
+%     SubjectID_Baseline.mat    : the recorded torque as the baseline.
+%     SubjectID_MVC_n.mat       : the recorded torque as the maximal voluntary contraction.
 %     Variables.mat             : the screen setup variables, calculated baseline and MVC values for the fatigue experiment. 
 
 clear, close all,  clc 
 KeyPressFcnTest
-%% Data aqusition with NI
 
+%% Data aqusition with NI
+DebugMode = 0; % If 1,(debug) small screen
+DAQMode=1 ; 
+
+if DAQMode 
 d = daq("ni");                                                              % Create DataAcquisition Object
 ch=addinput(d,"cDAQ1Mod1","ai23","Voltage");                                % Add channels and set channel properties:'Measurement Type (Voltage)', 
 ch.TerminalConfig = "SingleEnded";                                          % 'Terminal  Config (SingleEnded)', if any...
-
+end
 %% Participant ID
-DebugMode = 1 ; % If 1,(debug) small screen
-Subject_ID = input('Please enter the Subject ID number:','s');              % Creat the file for the subject. 
-%mkdir(pwd, Subject_ID);
+Subject_ID='EEG'
 lang='eng';
 
-% lang = input('Please choose the language (fr/eng):','s');                   % Select the preferred language, either "fr" or "eng".
-% while sum(strcmp(lang,{'fr','eng'}))==0 ;                                   % If the response doesn't match the answer, it will ask you again.
+%Subject_ID = input('Please enter the Subject ID number:','s');             % You can uncomment this to creat the file for the subject. 
+
+% lang = input('Please choose the language (fr/eng):','s');                 % Select the preferred language, either "fr" or "eng".
+% while sum(strcmp(lang,{'fr','eng'}))==0 ;                                 % If the response doesn't match the answer, it will ask you again.
 %     lang = input('There is an error, please choose the language (french/english):','s');
 % end;
 %% Creat Parallel port 
@@ -86,7 +90,6 @@ oldTextSize=Screen('TextSize', theWindow, 30);                              % Co
 
 Baseline_duration = 10;
 torque_cal=[];
-n = ceil(d.Rate/10);
 
 switch lang
     case 'eng'
@@ -97,25 +100,28 @@ switch lang
         text1 = ['Préparez-vous à serrer votre main le plus fort possible pour ',num2str(trialTime),' secondes'];
 end
 
-start(d,"continuous"); 
 
 DrawFormattedText(theWindow, text1,'center','center',255);
 Screen(theWindow,'Flip',[],0);
 WaitSecs(2);
 
 startTime = GetSecs; 
-    
-while GetSecs < startTime + Baseline_duration;
-    
-    torque_cal_data = read(d,n);                                            % Read the data in timetable format.
-    torque_cal = [torque_cal; torque_cal_data];
-    cla;
 
-    Base_disp=[num2str(Baseline_duration-round(GetSecs-startTime)),'s'];
-    DrawFormattedText(theWindow,text2,'center','center',255);
-    Screen(theWindow,'Flip',[],0);  % 0:delete previous, 1:keep 
-end ;
-stop(d);
+if DAQMode, 
+    start(d,"continuous");  
+    n = ceil(d.Rate/10); 
+    
+    while GetSecs < startTime + Baseline_duration;
+        torque_cal_data = read(d,n);                                        % Read the data in timetable format.
+        torque_cal = [torque_cal; torque_cal_data];
+        cla;
+        
+        %Base_disp=[num2str(Baseline_duration-round(GetSecs-startTime)),'s'];
+        DrawFormattedText(theWindow,text2,'center','center',255);
+        Screen(theWindow,'Flip',[],0);  % 0:delete previous, 1:keep 
+    end ;
+    stop(d);
+end
 
 DrawFormattedText(theWindow,text3,'center','center', white,255);
 Screen(theWindow,'Flip',[],0);
@@ -126,8 +132,8 @@ baseline=mean(torque_cal.cDAQ1Mod1_ai23);                                   % Ba
 
 %% MVC measurement 
 
-MVC_duration = 3;                                                            % 3 seconds as default
-Rest_duration = 60;                                                          %  1min as default.
+MVC_duration = 3;                                                           % 3 seconds as default
+Rest_duration = 60;                                                         %  1min as default.
 Ready_duration = 5;
 MVC_measurement_n=3;                                                        % Number of trials for measuring MVC. 
 Nm=50;                                                                      % Transform the voltage to torque force (based on the value from the ergoneter brochure).
@@ -155,36 +161,33 @@ WaitSecs(5);
 
 while MVC_measurement_n>0; 
 
-    % Ready to do MVC in 5s.
-    startTime = GetSecs; 
-    
+    %Ready to do MVC in 5s.
+    startTime = GetSecs;    
     while GetSecs < startTime + Ready_duration;
         MVC_disp=[num2str(Ready_duration-round(GetSecs-startTime)),'s']
         DrawFormattedText(theWindow,[text2 MVC_disp],'center','center',255);
         Screen(theWindow,'Flip',[],0);                                      % 0:delete previous, 1:keep
     end ;
     
-    % MVC for 3s. 
+    %MVC for 3s. 
     startTime = GetSecs;
-    torque_mvc = [];
+    torque_mvc = []; 
     
-    start(d,"continuous"); 
-    
-    if ~DebugMode  io64(ioObj,address,1); pause(0.02); io64(ioObj,address,0); end % trigger 1: the onset of MVC measurement.
-    
-    while GetSecs < startTime + MVC_duration
-        torque_mvc_data = read(d,n);
-        torque_mvc_data.cDAQ1Mod1_ai23 = (torque_mvc_data.cDAQ1Mod1_ai23-baseline)*Nm;
-        torque_mvc_data.cDAQ1Mod1_ai23=-(torque_mvc_data.cDAQ1Mod1_ai23);
-        torque_mvc = [torque_mvc; torque_mvc_data];
-        cla;
-           
-        timer_disp=[num2str(MVC_duration-round(GetSecs-startTime)),'s']
-        DrawFormattedText(theWindow,[text3 timer_disp],'center','center', white,255);
-        Screen(theWindow,'Flip',[],0);                                      % 0:delete previous, 1:keep
-    end ;
-    stop(d);
-    if ~DebugMode  io64(ioObj,address,2); pause(0.02); io64(ioObj,address,0); end % trigger 2: the offset of MVC measurement.
+    if DAQMode, start(d,"continuous");        
+        if ~DebugMode  io64(ioObj,address,1); pause(0.02); io64(ioObj,address,0); end % trigger 1: the onset of MVC measurement.       
+        while GetSecs < startTime + MVC_duration
+            torque_mvc_data = read(d,n);
+            torque_mvc_data.cDAQ1Mod1_ai23 = (torque_mvc_data.cDAQ1Mod1_ai23-baseline)*Nm;
+            torque_mvc_data.cDAQ1Mod1_ai23=-(torque_mvc_data.cDAQ1Mod1_ai23);
+            torque_mvc = [torque_mvc; torque_mvc_data];
+            cla;
+            
+            timer_disp=[num2str(MVC_duration-round(GetSecs-startTime)),'s']
+            DrawFormattedText(theWindow,[text3 timer_disp],'center','center', white,255);Screen(theWindow,'Flip',[],0);                                      % 0:delete previous, 1:keep
+        end ;     
+        stop(d);   
+        if ~DebugMode  io64(ioObj,address,2); pause(0.02); io64(ioObj,address,0); end % trigger 2: the offset of MVC measurement. 
+    end 
 
     save([pwd,'/',Subject_ID,'_MVC_',num2str(MVC_measurement_n),'.mat'],"torque_mvc"); % Save the MVC for the subject. 
     MVCC(i)=max(movmean(torque_mvc.Variables,d.Rate*0.5));                  % A 0.5s moving average window was used to calculate for MVC technique. 
@@ -210,8 +213,6 @@ Screen(theWindow,'Flip',[],0);                                              % 0:
 save([pwd,'/Variables.mat']);                                               % Save the variables for further experiment. 
 KeyPressFcnTest
 
-if ~DebugMode 
-fclose(t) ;
-end 
+if ~DebugMode fclose(t); end 
 
 Screen('CloseAll');

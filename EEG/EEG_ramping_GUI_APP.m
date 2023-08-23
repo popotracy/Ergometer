@@ -1,15 +1,43 @@
+% EEG_ramping_GUI_APP.m
+%  
+% 23rd Aug., 2023
+%
+% 
+% The Variables recorded from the "Ergometer_Baseline_MVC.m" will be firstly imported. 
+% Subject should follow the request on the screen to perform the task. 
+% 
+% Phase 1: Ready...
+% Phase 2: Perform the force (ball) to stay in the tunnel until reaching the threshold. 
+% Phase 3: Stay in the top of the tunnel (threshold) for 1 min.
+% Phase 4: Resting state for 1 min and be ready for next trial again. 
+%
+% Triggers: 
+%     "0" : close the portal handle. 
+%     "1" : the onset of a trial.
+%     "2" : the onset of the ramping.
+%     "3" : the offset of the ramping.
+%     "4" : the offset of a trial.
+%
+% Default parameters:   
+%     post_Threshold_t (staying top)  : 60s 
+%     Rest_t (resting state)          : 60s  
+%     
+%     Threshold                       : 10% 
+%     Error_acceptance                : 2% 
+%     Trial_n (number of total trials): 10
+%
+% OUTPUT:
+%     No variables will be saved...
+%     Only visual feedback will be needed. 
+
 clear, close all,  clc 
 KeyPressFcnTest
 %%
 DebugMode = 0;
 DAQMode=1;
 
-if DebugMode, 
-    MVC=184;
-    baseline=0.58
-    lang='eng'; % If 1,(debug) small screen
-else
-load ('Variables.mat', 'MVC','baseline','lang','Subject_ID');    
+if DebugMode, MVC=184; Baseline=0.58; Lang='eng'; % If 1,(debug) small screen
+else load ('Variables.mat', 'MVC','baseline','lang','Subject_ID');    
 end
 %% DAQ 
 if DAQMode
@@ -23,13 +51,12 @@ t = serial('COM1') ;
 ioObj=io64; %create a parallel port handle
 status=io64(ioObj);%if this returns '0' the port driver is loaded & ready
 address=hex2dec('03F8') ;
-
 fopen(t) ;
 end
 %% Experiment Set-up
 PER = 0.7 ;                                                                 % Percentage of the inner screen to be used.
 Threshold=0.1;  
-error=0.02;
+Error=0.02;
 
 % other color
 green   = [0 255 0];
@@ -104,20 +131,19 @@ Ay4 = InScr(4)-3*Block_H;
 %% Tunnel
 torque_eeg=[];
 Ball_percentage=[];
-trial_n=10;                                                                  
+Trial_n=10; 
 
+%Parameters of duration
+Ramping_t=Threshold*2/0.1; % According to reference: 10% for 2s-ramping.
+pre_Ramping_t=Ramping_t/2.75;
+Velocity=Block_W/pre_Ramping_t; 
+pre_Threshold_t=(inScrnWidth-R)/Velocity 
+post_Threshold_t=60;       % Default is 60s.
+Rest_t=60;
+Trial_t=pre_Threshold_t+post_Threshold_t;
 
-ramping_t=Threshold*2/0.1; % According to reference: 10% for 2s-ramping.
-pre_ramping_t=ramping_t/2.75;
-velocity=Block_W/pre_ramping_t; 
-
-pre_threshold_t=(inScrnWidth-R)/velocity 
-post_threshold_t=60; % Default is 60s.
-ready_t=60;
-Trial_t=pre_threshold_t+post_threshold_t;
-
-
-switch lang
+%Language
+switch Lang
     case 'eng'
         text1 = ['The experiment will start soon...'];
         text2 = ['Please maintain the ball in the tunnel by adding the force.']
@@ -132,7 +158,7 @@ switch lang
         text4 = [];
 end
 
-% Ready to start...
+%Ready to start...
 DrawFormattedText(theWindow,text1,'center','center', white,255);
 DrawFormattedText(theWindow, text6,'center',750, white,255); 
 Screen(theWindow,'Flip',[],0);                                              % 0:delete previous, 1:keep
@@ -142,68 +168,72 @@ DrawFormattedText(theWindow, text6,'center',750, white,255);
 Screen(theWindow,'Flip',[],0);                                              % 0:delete previous, 1:keep
 WaitSecs(3);
 
-while trial_n >0
+
+while Trial_n >0
     Onset_ramping=true; 
     Offset_ramping=true;
     
-    if ~DebugMode  io64(ioObj,address,1); pause(0.02); io64(ioObj,address,0); end % trigger 1: the onset of MVC measurement.
-    
-    startTime = GetSecs; 
-    
+    %Phase1: onset of a trial.
+    if ~DebugMode  io64(ioObj,address,1); pause(0.02); io64(ioObj,address,0); end % trigger 1: the onset of MVC measurement.   
     if DAQMode, start(d,"continuous"); n = ceil(d.Rate/10); end
-    
+    startTime = GetSecs;  
     while GetSecs <= startTime + Trial_t
-        
+      
         if ~DebugMode
-            if GetSecs-startTime>=round(pre_ramping_t,2) && Onset_ramping == true
+            %Phase2: onset of the ramping. 
+            if GetSecs-startTime>=round(pre_Ramping_t,2) && Onset_ramping == true
               io64(ioObj,address,2); pause(0.02); io64(ioObj,address,0);
               Onset_ramping = false ;
             end
             
-            if GetSecs-startTime >=round(pre_threshold_t,2) && Offset_ramping == true
+            %Phase3: offset of the ramping. 
+            if GetSecs-startTime >=round(pre_Threshold_t,2) && Offset_ramping == true
               io64(ioObj,address,2); pause(0.02); io64(ioObj,address,0);
               Offset_ramping = false ;
             end
         end
         
+        %Background setup
         Screen('FillRect',theWindow,white,InScr);
         Screen('FillRect',theWindow,white,ExtraTop);
         Screen('FillRect',theWindow,white,ExtraBottom);
-      
+        %Tunnel setup
         ratio=(Ay2-Ay3)/(Ax3-Ax2);
         for i=1:1:(Ax2-Ax1), Screen('FillOval', theWindow, red,[(Ax1-R)+i, Ay1-R, (Ax1+R)+i, Ay1+R]);end 
         for i=1:1:(Ax3-Ax2), Screen('FillOval', theWindow, red,[(Ax2-R)+i, (Ay2-R)-i*ratio, (Ax2+R)+i, (Ay2+R)-i*ratio]);end 
         for i=1:1:(Ax4-Ax3), Screen('FillOval', theWindow, red,[(Ax3-R)+i, Ay3-R, (Ax3+R)+i, Ay3+R]);end
        
 
-      % data acqusition
+      %Data acqusition
       if DAQMode 
-      torque_eeg_data = read(d,n);
-      torque_eeg_data.cDAQ1Mod1_ai23 = -((torque_eeg_data.cDAQ1Mod1_ai23-baseline)*50);
-      torque_eeg = [torque_eeg; torque_eeg_data];
-      Ball_percentage=[Ball_percentage; mean(torque_eeg_data.Variables)*100/MVC];
-      percentage_scale=3*Block_H/Threshold;
-      Ball_RealtimeHeight=mean(torque_eeg_data.Variables)*percentage_scale/MVC;
-
-      if  GetSecs-startTime <= pre_threshold_t
-      Bx1=(Ax1-R)+velocity*(GetSecs-startTime);
-      Bx2=(Ax1+R)+velocity*(GetSecs-startTime);    
-      else
-          Bx1=(Ax3+Ax4)/2-R; % stay in the end
-          Bx2=(Ax3+Ax4)/2+R; % stay in the end
-          if mean(torque_eeg_data.Variables)/MVC > Threshold+error
-          starting_H=(Threshold+error)*percentage_scale;
-          percentage_scale=Block_H/(1-Threshold);
-          Ball_RealtimeHeight=starting_H+(mean(torque_eeg_data.Variables)/MVC-Threshold-error)*percentage_scale;  
-          end
-      end 
-      By1=(Ay2-R)-Ball_RealtimeHeight;
-      By2=(Ay2+R)-Ball_RealtimeHeight; 
-      Ball=floor([Bx1, By1, Bx2, By2]);
-      cla
+          torque_eeg_data = read(d,n);
+          torque_eeg_data.cDAQ1Mod1_ai23 = -((torque_eeg_data.cDAQ1Mod1_ai23-Baseline)*50);
+          torque_eeg = [torque_eeg; torque_eeg_data];
+          Ball_percentage=[Ball_percentage; mean(torque_eeg_data.Variables)*100/MVC];
+          Percentage_scale=3*Block_H/Threshold;
+          Ball_RealtimeHeight=mean(torque_eeg_data.Variables)*Percentage_scale/MVC;       
+          %Point #1-#2-#3
+          if  GetSecs-startTime <= pre_Threshold_t
+              Bx1=(Ax1-R)+Velocity*(GetSecs-startTime);
+              Bx2=(Ax1+R)+Velocity*(GetSecs-startTime);    
+          else
+          %Point #3-#4
+              Bx1=(Ax3+Ax4)/2-R; % stay in the end
+              Bx2=(Ax3+Ax4)/2+R; % stay in the end
+              %Ball vibration
+              if mean(torque_eeg_data.Variables)/MVC > Threshold+Error
+                  Starting_H=(Threshold+Error)*Percentage_scale;
+                  Percentage_scale=Block_H/(1-Threshold);
+                  Ball_RealtimeHeight=Starting_H+(mean(torque_eeg_data.Variables)/MVC-Threshold-Error)*Percentage_scale;  
+              end
+          end       
+          By1=(Ay2-R)-Ball_RealtimeHeight;
+          By2=(Ay2+R)-Ball_RealtimeHeight; 
+          Ball=floor([Bx1, By1, Bx2, By2]);
+          cla
       end
       
-      %realtime ball
+      %Realtime ball display
       Screen('FillOval', theWindow, black,Ball); 
       if DebugMode
       % timer
@@ -213,18 +243,18 @@ while trial_n >0
       Threshold_display=[num2str(Threshold*100) '%'];
       DrawFormattedText(theWindow,Threshold_display,Ax1+20,Ay3+20, black,255); 
       end 
-      
+      %Grey trajectory 
       Screen('DrawLine',theWindow,grey,Ax1, Ay1, Ax2, Ay2,5);
       Screen('DrawLine',theWindow,grey,Ax2, Ay2, Ax3, Ay3 ,5);    
       Screen('DrawLine',theWindow,grey,Ax3, Ay3, Ax4, Ay4 ,5);
       Screen(theWindow,'Flip',[],0);
     
-    end
+    end   
     
     if DAQMode, stop(d), end
     
-    if ~DebugMode  io64(ioObj,address,4); pause(0.02); io64(ioObj,address,0); end % trigger 1: the onset of MVC measurement.
-    
+    % Phase4
+    if ~DebugMode  io64(ioObj,address,4); pause(0.02); io64(ioObj,address,0); end % trigger 1: the onset of MVC measuremen  
     Screen('FillRect',theWindow,white,ExtraTop);
     Screen('FillRect',theWindow,white,ExtraBottom);
     Screen('FillRect',theWindow,white,InScr);
@@ -233,29 +263,24 @@ while trial_n >0
     
     startTime = GetSecs; 
     while GetSecs < startTime + ready_t
-        % inner screen setup
+        %inner screen setup
         Screen('FillRect',theWindow,white,ExtraTop);
         Screen('FillRect',theWindow,white,ExtraBottom);
         Screen('FillRect',theWindow,white,InScr);
-        % timer
+        %timer
         timer_disp=[num2str(ready_t-round(GetSecs-startTime)),'s.'];
         DrawFormattedText(theWindow,[text5 timer_disp],'center','center', black,255); 
         Screen(theWindow,'Flip',[],0);                  
-    end
-    
-    trial_n=trial_n-1;
-    
+    end   
+    Trial_n=Trial_n-1;    
 end 
 
 
 
-%%
+%% End
 DrawFormattedText(theWindow,'Thank you for your participation.','center','center', white,255);
 Screen(theWindow,'Flip',[],0);                                              % 0:delete previous, 1:keep
 WaitSecs(5);
 
-
-if ~DebugMode 
-fclose(t) ;
-end 
+if ~DebugMode, fclose(t) ; end 
 Screen('CloseAll');
