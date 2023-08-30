@@ -15,8 +15,10 @@
 %     "0" : close the portal handle. 
 %     "1" : the onset of a trial.
 %     "2" : the onset of the ramping.
-%     "3" : the offset of the ramping.
-%     "4" : the offset of a trial.
+%     "3" : the onset of the threshold.
+%     "4" : the offset of the threshold.
+%     "5" : the offset of the ramping.
+%     "6" : the offset of a trial.
 %
 % Default parameters:   
 %     post_Threshold_t (staying top)  : 60s 
@@ -41,7 +43,7 @@ else  load ('Variables.mat', 'MVC','Baseline','Lang','Subject_ID');
 end
 %% DAQ 
 if DAQMode
-d = daq("ni");                                                              % Create DataAcquisition Object
+d=daq("ni");                                                              % Create DataAcquisition Object
 ch=addinput(d,"cDAQ1Mod1","ai23","Voltage");                                % Add channels and set channel properties:'Measurement Type (Voltage)', 
 ch.TerminalConfig = "SingleEnded";                                          % 'Terminal  Config (SingleEnded)', if any...
 end
@@ -49,7 +51,7 @@ end
 if ~DebugMode
 t = serial('COM1') ;
 ioObj=io64; %create a parallel port handle
-status=io64(ioObj);%if this returns '0' the port driver is loaded & ready
+status=io64(ioObj); %if this returns '0' the port driver is loaded & ready
 address=hex2dec('03F8') ;
 fopen(t) ;
 end
@@ -155,7 +157,7 @@ Velocity=Block_W/pre_Ramping_t;
 pre_Threshold_t=(inScrnWidth-R)/Velocity % #1-#2-#3 
 post_Threshold_t=pre_Threshold_t;        % #6-#7-#8 
 Threshold_t=20;                          % #4-#5 Default is 60.
-Rest_t=60;
+Rest_t=20;
 Trial_t=pre_Threshold_t+Threshold_t+post_Threshold_t;
 
 %Language
@@ -198,15 +200,16 @@ while Trial_n >0
     DrawFormattedText(theWindow,text3,Ax1,Ay1-70, black,255); 
     Screen('FillOval', theWindow, black,[Ax1-R, Ay1-R, Ax1+R, Ay1+R])
     Screen(theWindow,'Flip',[],1); 
-    WaitSecs(3);
+    WaitSecs(2);
     DrawFormattedText(theWindow,text4,Ax1+120,Ay1-70, black,255); 
-    WaitSecs(3); 
+    WaitSecs(2); 
     Screen(theWindow,'Flip',[],0); 
     
     %Phase1: onset of a trial.
     if ~DebugMode  io64(ioObj,address,1); pause(0.02); io64(ioObj,address,0); end % trigger 1: the onset of MVC measurement.   
     Onset_ramping=true; 
     Offset_ramping=true;
+
     start(d,"continuous"); n = ceil(d.Rate/10);
     startTime = GetSecs;  
     while GetSecs <= startTime + Trial_t      
@@ -214,9 +217,15 @@ while Trial_n >0
             %Phase2: onset of the ramping. 
             if GetSecs-startTime>=round(pre_Ramping_t,2) && Onset_ramping == true
               io64(ioObj,address,2); pause(0.02); io64(ioObj,address,0); Onset_ramping = false ; end           
-            %Phase3: offset of the ramping. 
+            %Phase3: onset of the threshold. 
             if GetSecs-startTime >=round(pre_Threshold_t,2) && Offset_ramping == true
-              io64(ioObj,address,2); pause(0.02); io64(ioObj,address,0);Offset_ramping = false ; end
+              io64(ioObj,address,3); pause(0.02); io64(ioObj,address,0);Offset_ramping = false ; end
+            %Phase4: offset of the threshold.
+            if GetSecs-startTime>=round(pre_Ramping_t,2) && Onset_ramping == true
+              io64(ioObj,address,4); pause(0.02); io64(ioObj,address,0); Onset_ramping = false ; end           
+            %Phase5: offset of the ramping. 
+            if GetSecs-startTime >=round(pre_Threshold_t,2) && Offset_ramping == true
+              io64(ioObj,address,5); pause(0.02); io64(ioObj,address,0);Offset_ramping = false ; end
         end
 
         %Background setup
@@ -231,11 +240,13 @@ while Trial_n >0
           Ball_percentage=[Ball_percentage; mean(torque_eeg_data.Variables)*100/MVC];
           Percentage_scale=3*Block_H/Threshold;
           Ball_RealtimeHeight=mean(torque_eeg_data.Variables)*Percentage_scale/MVC;
-%         if mean(torque_eeg_data.Variables)/MVC > Threshold+Error
-%            Starting_H=(Threshold+Error)*Percentage_scale;
-%            Percentage_scale=Block_H/(1-Threshold);
-%            Ball_RealtimeHeight=Starting_H+(mean(torque_eeg_data.Variables)/MVC-Threshold-Error)*Percentage_scale;  
-%         end
+       
+      %Ball vibration
+          if mean(torque_eeg_data.Variables)/MVC > Threshold+Error
+           Starting_H=(Threshold+Error)*Percentage_scale;
+           Percentage_scale=Block_H/(1-Threshold);
+           Ball_RealtimeHeight=Starting_H+(mean(torque_eeg_data.Variables)/MVC-Threshold-Error)*Percentage_scale;  
+          end
           
           if GetSecs-startTime <= pre_Threshold_t+Threshold_t/2
               %Tunnel setup
@@ -252,12 +263,6 @@ while Trial_n >0
                   %Point #3-#4 
                   Bx1=(Ax3+Ax4)/2-R; % stay in the end
                   Bx2=(Ax3+Ax4)/2+R; % stay in the end                        
-                  %Ball vibration
-                  if mean(torque_eeg_data.Variables)/MVC > Threshold+Error
-                      Starting_H=(Threshold+Error)*Percentage_scale;
-                      Percentage_scale=Block_H/(1-Threshold);
-                      Ball_RealtimeHeight=Starting_H+(mean(torque_eeg_data.Variables)/MVC-Threshold-Error)*Percentage_scale;  
-                  end
               end               
           else 
               ratio=(Ay6-Ay7)/(Ax7-Ax6);
@@ -273,25 +278,17 @@ while Trial_n >0
                   %Point #5-#6 
                   Bx1=(Ax5+Ax6)/2-R; % stay in the end
                   Bx2=(Ax5+Ax6)/2+R; % stay in the end
-                  %Ball vibration
-                  if mean(torque_eeg_data.Variables)/MVC > Threshold+Error
-                      Starting_H=(Threshold+Error)*Percentage_scale;
-                      Percentage_scale=Block_H/(1-Threshold);
-                      Ball_RealtimeHeight=Starting_H+(mean(torque_eeg_data.Variables)/MVC-Threshold-Error)*Percentage_scale;  
-                  end
               end         
           end
-
           By1=(Ay2-R)-Ball_RealtimeHeight;
           By2=(Ay2+R)-Ball_RealtimeHeight; 
           Ball=floor([Bx1, By1, Bx2, By2]);
           cla
  
-
       %Realtime ball display
       Screen('FillOval', theWindow, black,Ball);   
       if DebugMode
-      % timer
+      %timer
       timerdisplay=num2str(round(GetSecs-startTime));
       DrawFormattedText(theWindow,timerdisplay,'center','center', red,255); 
       end 
