@@ -49,7 +49,7 @@ ch.TerminalConfig = "SingleEnded";                                          % 'T
 end
 %% Create parallel port handle
 if ~DebugMode
-t = serial('COM1') ;
+t = serialport('COM1', 9600) ;
 ioObj=io64; %create a parallel port handle
 status=io64(ioObj); %if this returns '0' the port driver is loaded & ready
 address=hex2dec('03F8') ;
@@ -205,10 +205,7 @@ while Trial_n >0
     Screen(theWindow,'Flip',[],0); 
     
     %Phase1: onset of a trial.
-    if ~DebugMode 
-        setRTS(t, false); setDTR(t, false);
-        io64(ioObj,address,1); pause(0.02); %io64(ioObj,address,0); 
-    end % trigger 1: the onset of MVC measurement.   
+    if ~DebugMode, setRTS(t, false); setDTR(t, false); io64(ioObj,address,1);  end % trigger 1: the onset of MVC measurement.   
     
     Onset_ramping=true; 
     Offset_ramping=true;
@@ -219,12 +216,10 @@ while Trial_n >0
         if ~DebugMode
             %Phase2: onset of the ramping. 
             if GetSecs-startTime>=round(pre_Ramping_t,2) && Onset_ramping == true
-              setRTS(t, true); setDTR(t, false);
-                io64(ioObj,address,1); pause(0.02); %io64(ioObj,address,0); Onset_ramping = false ; end           
+              setRTS(t, true); setDTR(t, false); io64(ioObj,address,2); Onset_ramping = false ; end           
             %Phase3: onset of the threshold. 
             if GetSecs-startTime >=round(pre_Threshold_t,2) && Offset_ramping == true
-              setRTS(t, false); setDTR(t, true);
-                io64(ioObj,address,1); pause(0.02); %io64(ioObj,address,0);Offset_ramping = false ; end
+              setRTS(t, false); setDTR(t, true); io64(ioObj,address,3); Offset_ramping = false ; end
         end
 
         %Background setup
@@ -232,24 +227,24 @@ while Trial_n >0
         Screen('FillRect',theWindow,white,ExtraTop);
         Screen('FillRect',theWindow,white,ExtraBottom);
       
-      %Data acqusition
-          torque_eeg_data = read(d,n);
-          torque_eeg_data.cDAQ1Mod1_ai23 = -((torque_eeg_data.cDAQ1Mod1_ai23-Baseline)*50);
-          torque_eeg = [torque_eeg; torque_eeg_data];
-          Ball_percentage=[Ball_percentage; mean(torque_eeg_data.Variables)*100/MVC];
-          Percentage_scale=3*Block_H/Threshold;
-          Ball_RealtimeHeight=mean(torque_eeg_data.Variables)*Percentage_scale/MVC;
+        %Data acqusition
+        torque_eeg_data = read(d,n);
+        torque_eeg_data.cDAQ1Mod1_ai23 = -((torque_eeg_data.cDAQ1Mod1_ai23-Baseline)*50);
+        torque_eeg = [torque_eeg; torque_eeg_data];
+        Ball_percentage=[Ball_percentage; mean(torque_eeg_data.Variables)*100/MVC];
+        Percentage_scale=3*Block_H/Threshold;
+        Ball_RealtimeHeight=mean(torque_eeg_data.Variables)*Percentage_scale/MVC;
        
-      %Ball vibration
-          if mean(torque_eeg_data.Variables)/MVC > Threshold+Error
+        %Ball vibration
+        if mean(torque_eeg_data.Variables)/MVC > Threshold+Error
            Starting_H=(Threshold+Error)*Percentage_scale;
            Percentage_scale=Block_H/(1-Threshold);
            Ball_RealtimeHeight=Starting_H+(mean(torque_eeg_data.Variables)/MVC-Threshold-Error)*Percentage_scale;  
-          end
+        end
           
-          if GetSecs-startTime <= pre_Threshold_t+Threshold_t/2
-              %Tunnel setup
-              ratio=(Ay2-Ay3)/(Ax3-Ax2);
+        if GetSecs-startTime <= pre_Threshold_t+Threshold_t/2
+            %Tunnel setup
+            ratio=(Ay2-Ay3)/(Ax3-Ax2);
               for i=1:1:(Ax2-Ax1), Screen('FillOval', theWindow, red,[(Ax1-1.3*R)+i, Ay1-1.3*R, (Ax1+1.3*R)+i, Ay1+1.3*R]);end 
               for i=1:1:(Ax3-Ax2), Screen('FillOval', theWindow, red,[(Ax2-1.3*R)+i, (Ay2-1.3*R)-i*ratio, (Ax2+1.3*R)+i, (Ay2+1.3*R)-i*ratio]);end 
               for i=1:1:(Ax4-Ax3), Screen('FillOval', theWindow, red,[(Ax3-1.3*R)+i, Ay3-1.3*R, (Ax3+1.3*R)+i, Ay3+1.3*R]);end

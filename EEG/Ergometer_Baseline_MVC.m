@@ -36,7 +36,7 @@ clear, close all,  clc
 KeyPressFcnTest
 
 %% Data aqusition with NI
-DebugMode = 0; % If 1,(debug) small screen
+DebugMode = 1; % If 1,(debug) small screen
 DAQMode=1 ; 
 
 if DAQMode 
@@ -56,10 +56,10 @@ Lang='eng';
 % end;
 %% Creat Parallel port 
 if ~DebugMode
-t = serial('COM1') ;
+t = serialport('COM1', 9600) ;
 ioObj=io64;%create a parallel port handle
 status=io64(ioObj);%if this returns '0' the port driver is loaded & ready
-address=hex2dec('0378') ;
+address=hex2dec('03F8') ;
 
 %fopen(t) ;
 end
@@ -174,7 +174,7 @@ while MVC_measurement_n>0;
     torque_mvc = []; 
     
     if DAQMode, start(d,"continuous");        
-        if ~DebugMode  io64(ioObj,address,1); pause(0.02); io64(ioObj,address,0); end % trigger 1: the onset of MVC measurement.       
+        if ~DebugMode  io64(ioObj,address,1); end % trigger 1: the onset of MVC measurement.       
         while GetSecs < startTime + MVC_duration
             torque_mvc_data = read(d,n);
             torque_mvc_data.cDAQ1Mod1_ai23 = (torque_mvc_data.cDAQ1Mod1_ai23-Baseline)*Nm;
@@ -186,13 +186,14 @@ while MVC_measurement_n>0;
             DrawFormattedText(theWindow,[text3 timer_disp],'center','center', white,255);Screen(theWindow,'Flip',[],0);                                      % 0:delete previous, 1:keep
         end ;     
         stop(d);   
-        if ~DebugMode  io64(ioObj,address,2); pause(0.02); io64(ioObj,address,0); end % trigger 2: the offset of MVC measurement. 
+        if ~DebugMode  io64(ioObj,address,2); end % trigger 2: the offset of MVC measurement. 
     end 
 
     save([pwd,'/',Subject_ID,'_MVC_',num2str(MVC_measurement_n),'.mat'],"torque_mvc"); % Save the MVC for the subject. 
     MVCC(i)=max(movmean(torque_mvc.Variables,d.Rate*0.5));                  % A 0.5s moving average window was used to calculate for MVC technique. 
     i=i+1;
-
+    MVC=max(MVCC);                                                          % Find the largest MVC value in the measurements. 
+    save([pwd,'/Variables.mat']);                                               % Save the variables for further experiment. 
     % Resting for the next MVC for 3mins.
     startTime = GetSecs;     
     while GetSecs < startTime + Rest_duration;
@@ -202,16 +203,11 @@ while MVC_measurement_n>0;
     end ;
     MVC_measurement_n=MVC_measurement_n-1;
 end
-
-
-
-MVC=max(MVCC);                                                              % Find the largest MVC value in the measurements. 
+                                                         
 DrawFormattedText(theWindow,text5,'center','center', white,255);
 Screen(theWindow,'Flip',[],0);                                              % 0:delete previous, 1:keep   
 
 %% End
-save([pwd,'/Variables.mat']);                                               % Save the variables for further experiment. 
-KeyPressFcnTest
 
 %if ~DebugMode fclose(t); end 
 
