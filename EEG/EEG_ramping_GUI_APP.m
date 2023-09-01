@@ -101,48 +101,33 @@ ExtraTop=floor([InScr(1), InScr(2)-1.3*R, InScr(3), InScr(2)]);
 ExtraBottom=floor([InScr(1), InScr(4), InScr(3), InScr(4)+1.3*R]);
 
 %% EEG experiment variables
-
 % tunnel
 
-% (InScr(1), InScr(2))   #o __ __ __
-%                        |     #3___|#4
-%                        |    /     |
-%           (Axn, Ayn) #1|_#2/      | 
-%                        |__ __ __ _#e (InScr(3), InScr(4))
+% (InScr(1), InScr(2))   #o __ __ __ __
+%                        |     #3_#4   |
+%                        |    /    \   |
+%           (Axn, Ayn) #1|_#2/    #5\__|#6 
+%                        |__ __ __ __ _|#e (InScr(3), InScr(4))
 %            
 
 % #1 
 Ax1 = InScr(1);
 Ay1 = InScr(4);
 % #2 
-Ax2 = (InScr(1)*3+ InScr(3))/4;
+Ax2 = (InScr(1)*7+ InScr(3))/8;
 Ay2 = InScr(4);
 % #3
-Ax3 = InScr(3)-Block_W/2;
+Ax3 = (InScr(1)+ InScr(3))/2-R;
 Ay3 = InScr(4)-3*Block_H;
 % #4
-Ax4 = InScr(3);
+Ax4 = (InScr(1)+ InScr(3))/2+R;
 Ay4 = InScr(4)-3*Block_H;
-
-% (InScr(1), InScr(2))   #o __ __ __
-%                      #5|__#6      |
-%                        |   \      |
-%           (Axn, Ayn)   |    \#7__ |#8 
-%                        |__ __ __ _#e (InScr(3), InScr(4))
-%  
-
 % #5
-Ax5 = InScr(1);
-Ay5 = InScr(4)-3*Block_H;
+Ax5 = (InScr(1)+ InScr(3)*7)/8;
+Ay5 = InScr(4);
 % #6
-Ax6 = InScr(1)+Block_W/2;
-Ay6 = InScr(4)-3*Block_H;
-% #7
-Ax7 = (InScr(1)+ InScr(3)*3)/4;
-Ay7 = InScr(4);
-% #8
-Ax8 = InScr(3);
-Ay8 = InScr(4);
+Ax6 = InScr(3);
+Ay6 = InScr(4);
 
 %% Tunnel
 torque_eeg=[];
@@ -151,9 +136,9 @@ Trial_n=10;
 
 %Parameters of duration
 Ramping_t=Threshold*2/0.1;               % According to reference: 10% for 2s-ramping.
-pre_Ramping_t=Ramping_t/2.75;            % #1-#2
-Velocity=Block_W/pre_Ramping_t; 
-pre_Threshold_t=(inScrnWidth-R)/Velocity % #1-#2-#3 
+Velocity=(Ax3-Ax2)/Ramping_t;
+pre_Ramping_t=(Ax2-Ax1)/Velocity         % #1-#2
+pre_Threshold_t=(inScrnWidth/2)/Velocity % #1-#2-#3 
 post_Threshold_t=pre_Threshold_t;        % #6-#7-#8 
 Threshold_t=60;                          % #4-#5 Default is 60.
 Rest_t=60;
@@ -193,9 +178,11 @@ while Trial_n >0
     
     %Tunnel setup
     ratio=(Ay2-Ay3)/(Ax3-Ax2);
-    for i=1:1:(Ax2-Ax1), Screen('FillOval', theWindow, red,[(Ax1-1.3*R)+i, Ay1-1.3*R, (Ax1+1.3*R)+i, Ay1+1.3*R]);end 
+    for i=1:1:(Ax2-Ax1), Screen('FillOval', theWindow, red,[(Ax1-1.3*R)+i, Ay1-1.3*R, (Ax1+1*R)+i, Ay1+1.3*R]);end 
     for i=1:1:(Ax3-Ax2), Screen('FillOval', theWindow, red,[(Ax2-1.3*R)+i, (Ay2-1.3*R)-i*ratio, (Ax2+1.3*R)+i, (Ay2+1.3*R)-i*ratio]);end 
-    for i=1:1:(Ax4-Ax3), Screen('FillOval', theWindow, red,[(Ax3-1.3*R)+i, Ay3-1.3*R, (Ax3+1.3*R)+i, Ay3+1.3*R]);end
+    for i=1:1:(Ax4-Ax3), Screen('FillOval', theWindow, red,[(Ax3-1.3*R)+i, (Ay3-1.3*R), (Ax3+R)+i, (Ay3+1.3*R)]);end 
+    for i=1:1:(Ax5-Ax4), Screen('FillOval', theWindow, red,[(Ax4-1.3*R)+i, (Ay4-1.3*R)+i*ratio, (Ax4+1.3*R)+i, (Ay4+1.3*R)+i*ratio]);end 
+    for i=1:1:(Ax6-Ax5), Screen('FillOval', theWindow, red,[(Ax5-1.3*R)+i, Ay5-1.3*R, (Ax5+1.3*R)+i, Ay5+1.3*R]);end
     DrawFormattedText(theWindow,text3,Ax1,Ay1-70, black,255); 
     Screen('FillOval', theWindow, black,[Ax1-R, Ay1-R, Ax1+R, Ay1+R])
     Screen(theWindow,'Flip',[],1); 
@@ -213,6 +200,7 @@ while Trial_n >0
     start(d,"continuous"); n = ceil(d.Rate/10);
     startTime = GetSecs;  
     while GetSecs <= startTime + Trial_t      
+        t=GetSecs-startTime; 
         if ~DebugMode
             %Phase2: onset of the ramping. 
             if GetSecs-startTime>=round(pre_Ramping_t,2) && Onset_ramping == true
@@ -226,7 +214,14 @@ while Trial_n >0
         Screen('FillRect',theWindow,white,InScr);
         Screen('FillRect',theWindow,white,ExtraTop);
         Screen('FillRect',theWindow,white,ExtraBottom);
-      
+        %Tunnel setup
+        ratio=(Ay2-Ay3)/(Ax3-Ax2);
+        for i=1:1:(Ax2-Ax1), Screen('FillOval', theWindow, red,[(Ax1-1.3*R)+i, Ay1-1.3*R, (Ax1+1*R)+i, Ay1+1.3*R]);end 
+        for i=1:1:(Ax3-Ax2), Screen('FillOval', theWindow, red,[(Ax2-1.3*R)+i, (Ay2-1.3*R)-i*ratio, (Ax2+1.3*R)+i, (Ay2+1.3*R)-i*ratio]);end 
+        for i=1:1:(Ax4-Ax3), Screen('FillOval', theWindow, red,[(Ax3-1.3*R)+i, (Ay3-1.3*R), (Ax3+R)+i, (Ay3+1.3*R)]);end 
+        for i=1:1:(Ax5-Ax4), Screen('FillOval', theWindow, red,[(Ax4-1.3*R)+i, (Ay4-1.3*R)+i*ratio, (Ax4+1.3*R)+i, (Ay4+1.3*R)+i*ratio]);end 
+        for i=1:1:(Ax6-Ax5), Screen('FillOval', theWindow, red,[(Ax5-1.3*R)+i, Ay5-1.3*R, (Ax5+1.3*R)+i, Ay5+1.3*R]);end
+
         %Data acqusition
         torque_eeg_data = read(d,n);
         torque_eeg_data.cDAQ1Mod1_ai23 = -((torque_eeg_data.cDAQ1Mod1_ai23-Baseline)*50);
@@ -235,45 +230,24 @@ while Trial_n >0
         Percentage_scale=3*Block_H/Threshold;
         Ball_RealtimeHeight=mean(torque_eeg_data.Variables)*Percentage_scale/MVC;
        
-        %Ball vibration
+        %Ball vertical vibration
         if mean(torque_eeg_data.Variables)/MVC > Threshold+Error
            Starting_H=(Threshold+Error)*Percentage_scale;
            Percentage_scale=Block_H/(1-Threshold);
            Ball_RealtimeHeight=Starting_H+(mean(torque_eeg_data.Variables)/MVC-Threshold-Error)*Percentage_scale;  
         end
           
-        if GetSecs-startTime <= pre_Threshold_t+Threshold_t/2
-            %Tunnel setup
-            ratio=(Ay2-Ay3)/(Ax3-Ax2);
-              for i=1:1:(Ax2-Ax1), Screen('FillOval', theWindow, red,[(Ax1-1.3*R)+i, Ay1-1.3*R, (Ax1+1.3*R)+i, Ay1+1.3*R]);end 
-              for i=1:1:(Ax3-Ax2), Screen('FillOval', theWindow, red,[(Ax2-1.3*R)+i, (Ay2-1.3*R)-i*ratio, (Ax2+1.3*R)+i, (Ay2+1.3*R)-i*ratio]);end 
-              for i=1:1:(Ax4-Ax3), Screen('FillOval', theWindow, red,[(Ax3-1.3*R)+i, Ay3-1.3*R, (Ax3+1.3*R)+i, Ay3+1.3*R]);end
-              
-              %Point #1-#2-#3 
-              if  GetSecs-startTime <= pre_Threshold_t
-                  Bx1=(Ax1-R)+Velocity*(GetSecs-startTime);
-                  Bx2=(Ax1+R)+Velocity*(GetSecs-startTime);           
-              else
-                  %Point #3-#4 
-                  Bx1=(Ax3+Ax4)/2-R; % stay in the end
-                  Bx2=(Ax3+Ax4)/2+R; % stay in the end                        
-              end               
-          else 
-              ratio=(Ay6-Ay7)/(Ax7-Ax6);
-              for i=1:1:(Ax6-Ax5), Screen('FillOval', theWindow, red,[(Ax5-1.3*R)+i, Ay5-1.3*R, (Ax5+1.3*R)+i, Ay5+1.3*R]);end 
-              for i=1:1:(Ax7-Ax6), Screen('FillOval', theWindow, red,[(Ax6-1.3*R)+i, (Ay6-1.3*R)-i*ratio, (Ax6+1.3*R)+i, (Ay6+1.3*R)-i*ratio]);end 
-              for i=1:1:(Ax8-Ax7), Screen('FillOval', theWindow, red,[(Ax7-1.3*R)+i, Ay7-1.3*R, (Ax7+1.3*R)+i, Ay7+1.3*R]);end
-              
-              %Point #6-#7-#8 
-              if  GetSecs-startTime >= Threshold_t+pre_Threshold_t
-                  Bx1=(Ax6-R)+Velocity*(GetSecs-startTime-Threshold_t-pre_Threshold_t);
-                  Bx2=(Ax6+R)+Velocity*(GetSecs-startTime-Threshold_t-pre_Threshold_t);    
-              else
-                  %Point #5-#6 
-                  Bx1=(Ax5+Ax6)/2-R; % stay in the end
-                  Bx2=(Ax5+Ax6)/2+R; % stay in the end
-              end         
-          end
+       % Ball horizontal displacement 
+        if t <= pre_Threshold_t
+            Bx1=(Ax1-R)+Velocity*(t);
+            Bx2=(Ax1+R)+Velocity*(t);           
+        elseif t > pre_Threshold_t && t <= pre_Threshold_t+Threshold_t
+            Bx1=(Ax3+Ax4)/2-R; % stay in the end
+            Bx2=(Ax3+Ax4)/2+R; % stay in the end                               
+        else 
+            Bx1=(Ax1-R)+Velocity*(t-Threshold_t);
+            Bx2=(Ax1+R)+Velocity*(t-Threshold_t);   
+        end
           By1=(Ay2-R)-Ball_RealtimeHeight;
           By2=(Ay2+R)-Ball_RealtimeHeight; 
           Ball=floor([Bx1, By1, Bx2, By2]);
