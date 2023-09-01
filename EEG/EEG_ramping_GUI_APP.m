@@ -35,7 +35,7 @@
 clear, close all,  clc 
 KeyPressFcnTest
 %%
-DebugMode = 1;
+DebugMode = 0;
 DAQMode=1;
 
 if DebugMode, MVC=184; Baseline=0.28; Lang='eng'; % If 1,(debug) small screen
@@ -53,7 +53,7 @@ t = serial('COM1') ;
 ioObj=io64; %create a parallel port handle
 status=io64(ioObj); %if this returns '0' the port driver is loaded & ready
 address=hex2dec('03F8') ;
-fopen(t) ;
+%fopen(t) ;
 end
 %% Experiment Set-up
 PER = 0.7 ;                                                                 % Percentage of the inner screen to be used.
@@ -74,8 +74,7 @@ screenid=max(screens);
 white=WhiteIndex(screenid);                                                 % Find the color values which correspond to white and black: Usually
 black=BlackIndex(screenid);                                                 % black is always 0 and white 255, but this rule is not true if one of
                                                                             % the high precision framebuffer modes is enabled via the
-                                                                            % PsychImaging() commmand, so we query the true values via the
-                                                                            % functions WhiteIndex and BlackIndex
+                                                                            % PsychImaging() commmand, so we query the true values via the                                                                          % functions WhiteIndex and BlackIndex
 Screen('Preference', 'SkipSyncTests', 1);             
 if DebugMode % Use this smaller screen for debugging
         [theWindow,screenRect] = Screen('OpenWindow',screenid, black,[1000 100 2000 1000],[],2);
@@ -156,8 +155,8 @@ pre_Ramping_t=Ramping_t/2.75;            % #1-#2
 Velocity=Block_W/pre_Ramping_t; 
 pre_Threshold_t=(inScrnWidth-R)/Velocity % #1-#2-#3 
 post_Threshold_t=pre_Threshold_t;        % #6-#7-#8 
-Threshold_t=20;                          % #4-#5 Default is 60.
-Rest_t=20;
+Threshold_t=60;                          % #4-#5 Default is 60.
+Rest_t=60;
 Trial_t=pre_Threshold_t+Threshold_t+post_Threshold_t;
 
 %Language
@@ -206,7 +205,11 @@ while Trial_n >0
     Screen(theWindow,'Flip',[],0); 
     
     %Phase1: onset of a trial.
-    if ~DebugMode  io64(ioObj,address,1); pause(0.02); io64(ioObj,address,0); end % trigger 1: the onset of MVC measurement.   
+    if ~DebugMode 
+        setRTS(t, false); setDTR(t, false);
+        io64(ioObj,address,1); pause(0.02); %io64(ioObj,address,0); 
+    end % trigger 1: the onset of MVC measurement.   
+    
     Onset_ramping=true; 
     Offset_ramping=true;
 
@@ -216,16 +219,12 @@ while Trial_n >0
         if ~DebugMode
             %Phase2: onset of the ramping. 
             if GetSecs-startTime>=round(pre_Ramping_t,2) && Onset_ramping == true
-              io64(ioObj,address,2); pause(0.02); io64(ioObj,address,0); Onset_ramping = false ; end           
+              setRTS(t, true); setDTR(t, false);
+                io64(ioObj,address,1); pause(0.02); %io64(ioObj,address,0); Onset_ramping = false ; end           
             %Phase3: onset of the threshold. 
             if GetSecs-startTime >=round(pre_Threshold_t,2) && Offset_ramping == true
-              io64(ioObj,address,3); pause(0.02); io64(ioObj,address,0);Offset_ramping = false ; end
-            %Phase4: offset of the threshold.
-            if GetSecs-startTime>=round(pre_Ramping_t,2) && Onset_ramping == true
-              io64(ioObj,address,4); pause(0.02); io64(ioObj,address,0); Onset_ramping = false ; end           
-            %Phase5: offset of the ramping. 
-            if GetSecs-startTime >=round(pre_Threshold_t,2) && Offset_ramping == true
-              io64(ioObj,address,5); pause(0.02); io64(ioObj,address,0);Offset_ramping = false ; end
+              setRTS(t, false); setDTR(t, true);
+                io64(ioObj,address,1); pause(0.02); %io64(ioObj,address,0);Offset_ramping = false ; end
         end
 
         %Background setup
@@ -297,7 +296,6 @@ while Trial_n >0
     stop(d)
        
     % Phase4
-    if ~DebugMode  io64(ioObj,address,4); pause(0.02); io64(ioObj,address,0); end % trigger 1: the onset of MVC measuremen  
     Screen('FillRect',theWindow,white,ExtraTop);
     Screen('FillRect',theWindow,white,ExtraBottom);
     Screen('FillRect',theWindow,white,InScr);
@@ -323,5 +321,5 @@ DrawFormattedText(theWindow,'Thank you for your participation.','center','center
 Screen(theWindow,'Flip',[],0);                                              % 0:delete previous, 1:keep
 WaitSecs(5);
 
-if ~DebugMode, fclose(t) ; end 
+%if ~DebugMode, fclose(t) ; end 
 Screen('CloseAll');
