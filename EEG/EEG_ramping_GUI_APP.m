@@ -200,7 +200,7 @@ while Trial_n >0
     start(d,"continuous"); n = ceil(d.Rate/10);
     startTime = GetSecs;  
     while GetSecs <= startTime + Trial_t      
-        t=GetSecs-startTime; 
+        timer=GetSecs-startTime; 
         if ~DebugMode
             %Phase2: onset of the ramping. 
             if GetSecs-startTime>=round(pre_Ramping_t,2) && Onset_ramping == true
@@ -238,15 +238,15 @@ while Trial_n >0
         end
           
        % Ball horizontal displacement 
-        if t <= pre_Threshold_t
-            Bx1=(Ax1-R)+Velocity*(t);
-            Bx2=(Ax1+R)+Velocity*(t);           
-        elseif t > pre_Threshold_t && t <= pre_Threshold_t+Threshold_t
+        if timer <= pre_Threshold_t
+            Bx1=(Ax1-R)+Velocity*(timer);
+            Bx2=(Ax1+R)+Velocity*(timer);           
+        elseif timer > pre_Threshold_t && timer <= pre_Threshold_t+Threshold_t
             Bx1=(Ax3+Ax4)/2-R; % stay in the end
             Bx2=(Ax3+Ax4)/2+R; % stay in the end                               
         else 
-            Bx1=(Ax1-R)+Velocity*(t-Threshold_t);
-            Bx2=(Ax1+R)+Velocity*(t-Threshold_t);   
+            Bx1=(Ax1-R)+Velocity*(timer-Threshold_t);
+            Bx2=(Ax1+R)+Velocity*(timer-Threshold_t);   
         end
           By1=(Ay2-R)-Ball_RealtimeHeight;
           By2=(Ay2+R)-Ball_RealtimeHeight; 
