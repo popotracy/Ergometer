@@ -33,7 +33,6 @@
 %     Only visual feedback will be needed. 
 
 clear, close all,  clc 
-KeyPressFcnTest
 %% Load Participant ID
 
 %Subject_ID = input('Please enter the Subject ID number:','s');              % Creat the file for the subject. 
@@ -44,7 +43,7 @@ KeyPressFcnTest
 %     lang = input('There is an error, please choose the language (french/english):','s');
 % end;
 
-load ('Variables.mat', 'MVC','baseline','lang','Subject_ID');                                                        % the setup variables, MVC values and baseline values are imported. 
+load ('Variables.mat', 'MVC','Baseline','Lang','Subject_ID');                                                        % the setup variables, MVC values and Baseline values are imported. 
 DebugMode = 1;
 
 %% Data aqusition with NI 
@@ -87,7 +86,7 @@ if DebugMode % Use this smaller screen for debugging
         [theWindow,screenRect] = Screen('OpenWindow',screenid, black,[500 100 1500 1000],[],2);
 else
         [theWindow,screenRect] = Screen('OpenWindow',screenid, black,[],[],2);
-        HideCursor;
+        %HideCursor;
 end
 
 oldTextSize=Screen('TextSize', theWindow, 30);                              % Costumize the textsize witht the monitor.  
@@ -122,7 +121,7 @@ Ready_duration = 5;
 bar_position=[];
 Bar_RealtimeHeight = inScrnHeight;                                                     % Max=inScrnHeight (MVC)
 
-switch lang
+switch Lang
     case 'eng'
         text1 = ['The experiment will start soon...'];
         text2 = ['Hold the bar on the green line for '];
@@ -183,7 +182,7 @@ while trial_n >0;
        
         % data acqusition
         torque_fatique_data = read(d,n);
-        torque_fatique_data.cDAQ1Mod1_ai23 = -((torque_fatique_data.cDAQ1Mod1_ai23-baseline)*50);
+        torque_fatique_data.cDAQ1Mod1_ai23 = -((torque_fatique_data.cDAQ1Mod1_ai23-Baseline)*50);
         torque_fatique = [torque_fatique; torque_fatique_data];
         bar_position=[bar_position; mean(torque_fatique_data.Variables)*100/MVC];
         Bar_RealtimeHeight=mean(torque_fatique_data.Variables)*inScrnHeight/MVC;
@@ -198,9 +197,9 @@ while trial_n >0;
         Threshold_percentage_disp=[num2str(Threshold*100),'% of MVC'];
         DrawFormattedText(theWindow,Threshold_percentage_disp,InScr(1)+10, InScr(4)-Threshold*inScrnHeight+30,black, 255);       
 
-        % baseline
+        % Baseline
         Screen('DrawLine',theWindow,black,InScr(1), InScr(4), InScr(3), InScr(4), 5);
-        DrawFormattedText(theWindow,'0% of MVC (baseline)',InScr(1)+10, InScr(4)+30,black, 255);
+        DrawFormattedText(theWindow,'0% of MVC (Baseline)',InScr(1)+10, InScr(4)+30,black, 255);
         Screen(theWindow,'Flip',[],0);  
     end
     stop(d);
@@ -242,7 +241,7 @@ while trial_n >0;
        
         % data acqusition
         torque_fatique_data = read(d,n);
-        torque_fatique_data.cDAQ1Mod1_ai23 = -((torque_fatique_data.cDAQ1Mod1_ai23-baseline)*50);
+        torque_fatique_data.cDAQ1Mod1_ai23 = -((torque_fatique_data.cDAQ1Mod1_ai23-Baseline)*50);
         torque_fatique = [torque_fatique; torque_fatique_data];
         bar_position=[bar_position; mean(torque_fatique_data.Variables)*100/MVC];
         Bar_RealtimeHeight=mean(torque_fatique_data.Variables)*inScrnHeight/MVC;
@@ -258,9 +257,9 @@ while trial_n >0;
         % MVC line
         Screen('DrawLine',theWindow,orange,InScr(1), InScr(2), InScr(3), InScr(2), 5);
         DrawFormattedText(theWindow,'100% of MVC',InScr(1)+10, InScr(2)+30,black, 255);
-        % baseline
+        % Baseline
         Screen('DrawLine',theWindow,black,InScr(1), InScr(4), InScr(3), InScr(4), 5);
-        DrawFormattedText(theWindow,'0% of MVC (baseline)',InScr(1)+10, InScr(4)+30,black, 255);
+        DrawFormattedText(theWindow,'0% of MVC (Baseline)',InScr(1)+10, InScr(4)+30,black, 255);
         Screen(theWindow,'Flip',[],0);        
     end
     stop(d);
