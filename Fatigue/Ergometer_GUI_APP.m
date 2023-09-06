@@ -11,8 +11,7 @@
 % Phase 3: Perform the force (bar) to reach the orange line (MVC) .
 % Phase 4: Resting state and be ready for next trial again. 
 %
-% Triggers: 
-%     "0" : close the portal handle. 
+% Triggers:
 %     "1" : the onset of MVC measurement.
 %     "2" : the offset of MVC measurement.
 %     "3" : the onset of a trial (threshold).
@@ -25,7 +24,7 @@
 %     MVC_duration       : 3s 
 %     Ready_duration     : 5s 
 %     
-%     Threshold          : 30% 
+%     Threshold          : 20% 
 %     Error_acceptance   : 2% 
 %     trial_n            : Max 20 trials
 %
@@ -55,12 +54,11 @@ ch=addinput(d,"cDAQ1Mod1","ai23","Voltage");                                % Ad
 ch.TerminalConfig = "SingleEnded" ;                                         % 'Terminal  Config (SingleEnded)', if any...
 %% Creat Parallel port 
 
-t = serial('COM1') ;
+t = serialport('COM1',9600) ;
 ioObj=io64;%create a parallel port handle
 status=io64(ioObj);%if this returns '0' the port driver is loaded & ready
-address=hex2dec('0378') ;
+address=hex2dec('03F8') ;
 
-fopen(t) ;
 %% Experiment Set-up
 PER = 0.7 ;                                                                 % Percentage of the inner screen to be used.
 Threshold=0.2;                                                              
@@ -171,7 +169,7 @@ while trial_n >0;
 
     % Phase 1: Hold the force (bar) to remain on the green line (threshold).   
     startTime = GetSecs; 
-    if ~DebugMode, io64(ioObj,address,3); pause(0.002); io64(ioObj,address,0); end % trigger 3: the onset of the trial. 
+    if ~DebugMode, io64(ioObj,address,1); end % trigger 1: the onset of the trial. 
 
     start(d,"continuous");
     while GetSecs < startTime + Threshold_duration;
@@ -207,7 +205,7 @@ while trial_n >0;
     end
     stop(d);
     
-    if ~DebugMode, io64(ioObj,address,4); pause(0.002); io64(ioObj,address,0); end % trigger 4: the offset of the trial. 
+    if ~DebugMode, io64(ioObj,address,2); end % trigger 2: the offset of the trial. 
 
     % Phase 2: Resting state.
 
@@ -231,7 +229,7 @@ while trial_n >0;
    
     % Phase 3: Perform the force (bar) to reach the orange line (MVC) .
     startTime = GetSecs;
-    if ~DebugMode, io64(ioObj,address,1); pause(0.002); io64(ioObj,address,0); end % trigger 1: the onset of MVC measurement.
+    if ~DebugMode, io64(ioObj,address,3); end % trigger 3: the onset of MVC measurement.
 
     start(d,"continuous");
     while GetSecs < startTime + MVC_duration
@@ -266,7 +264,7 @@ while trial_n >0;
         Screen(theWindow,'Flip',[],0);        
     end
     stop(d);
-    if ~DebugMode, io64(ioObj,address,2); pause(0.002); io64(ioObj,address,0); end % trigger 2: the offset of MVC measurement.
+    if ~DebugMode, io64(ioObj,address,4);  end % trigger 4: the offset of MVC measurement.
 
     
     % Phase 4: Resting state and be ready for next trial again. 
@@ -309,5 +307,4 @@ Screen(theWindow,'Flip',[],0);
 WaitSecs(5);
 
 %%
-fclose(t) ;
 Screen('CloseAll');
