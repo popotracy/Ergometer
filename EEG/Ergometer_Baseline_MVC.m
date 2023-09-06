@@ -16,7 +16,7 @@
 %     lang (fr/eng): "eng"
 %
 % Triggers:
-%     "0" : close the portal handle.
+%     "0" : the onset of Baseline measurement. 
 %     "1" : the onset of MVC measurement.
 %     "2" : the offset of MVC measurement.
 %
@@ -106,7 +106,7 @@ Screen(theWindow,'Flip',[],0);
 WaitSecs(2);
 
 startTime = GetSecs; 
-
+if ~DebugMode  io64(ioObj,address,0); end
 if DAQMode, 
     start(d,"continuous");  
     n = ceil(d.Rate/10); 
