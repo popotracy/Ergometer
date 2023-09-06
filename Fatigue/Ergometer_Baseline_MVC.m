@@ -81,7 +81,7 @@ if DebugMode % Use this smaller screen for debugging
         [theWindow,screenRect] = Screen('OpenWindow',screenid, black,[500 100 1500 1000],[],2);
 else
         [theWindow,screenRect] = Screen('OpenWindow',screenid, black,[],[],2);
-        HideCursor;
+        %HideCursor;
 end
 
 oldTextSize=Screen('TextSize', theWindow, 30);                              % Costumize the textsize witht the monitor.  
@@ -194,6 +194,7 @@ while MVC_measurement_n>0;
     MVCC(i)=max(movmean(torque_mvc.Variables,d.Rate*0.5));                  % A 0.5s moving average window was used to calculate for MVC technique. 
     i=i+1;
     save([pwd,'/Variables.mat']);                                           % Save the variables for further experiment. 
+    MVC=max(MVCC);                                                              % Find the largest MVC value in the measurements. 
 
     % Resting for the next MVC for 3mins.
     startTime = GetSecs;     
@@ -207,7 +208,6 @@ end
 
 
 
-MVC=max(MVCC);                                                              % Find the largest MVC value in the measurements. 
 DrawFormattedText(theWindow,text5,'center','center', white,255);
 Screen(theWindow,'Flip',[],0);                                              % 0:delete previous, 1:keep   
 
