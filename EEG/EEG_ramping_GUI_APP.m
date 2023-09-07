@@ -33,7 +33,6 @@
 %     Only visual feedback will be needed. 
 
 clear, close all,  clc 
-KeyPressFcnTest
 %%
 DebugMode = 0;
 DAQMode=1;
@@ -203,6 +202,7 @@ while Trial_n >0
         if ~DebugMode, triger1_check = GetSecs-startTime, timing_check=[timing_check; triger1_check]; setRTS(t, false); setDTR(t, false); io64(ioObj,address,1);  end % trigger 1: the onset of MVC measurement.   
 
     while GetSecs <= startTime + Trial_t      
+        ClosePTB
         timer=GetSecs-startTime; 
         if ~DebugMode
             %Phase2: onset of the ramping. 
@@ -278,6 +278,7 @@ while Trial_n >0
     
     startTime = GetSecs; 
     while GetSecs < startTime + Rest_t
+        ClosePTB
         %inner screen setup
         Screen('FillRect',theWindow,white,ExtraTop);
         Screen('FillRect',theWindow,white,ExtraBottom);

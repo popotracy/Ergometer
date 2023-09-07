@@ -33,7 +33,6 @@
 %     Variables.mat             : the screen setup variables, calculated Baseline and MVC values for the fatigue experiment. 
 
 clear, close all,  clc 
-KeyPressFcnTest
 
 %% Data aqusition with NI
 DebugMode = 1; % If 1,(debug) small screen
@@ -193,10 +192,12 @@ while MVC_measurement_n>0;
     MVCC(i)=max(movmean(torque_mvc.Variables,d.Rate*0.5));                  % A 0.5s moving average window was used to calculate for MVC technique. 
     i=i+1;
     MVC=max(MVCC);                                                          % Find the largest MVC value in the measurements. 
-    save([pwd,'/Variables.mat']);                                               % Save the variables for further experiment. 
+    save([pwd,'/Variables.mat']);   
+    % Save the variables for further experiment. 
     % Resting for the next MVC for 3mins.
     startTime = GetSecs;     
     while GetSecs < startTime + Rest_duration;
+        ClosePTB
         MVC_disp=[num2str(Rest_duration-round(GetSecs-startTime)),'s'];
         DrawFormattedText(theWindow,[text4 MVC_disp],'center','center', white,255);
         Screen(theWindow,'Flip',[],0); 
