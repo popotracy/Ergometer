@@ -33,8 +33,6 @@
 %     Variables.mat             : the screen setup variables, calculated Baseline and MVC values for the fatigue experiment. 
 
 clear, close all,  clc 
-KeyPressFcnTest
-
 %% Data aqusition with NI
 DebugMode = 0; % If 1,(debug) small screen
 DAQMode=1 ; 
@@ -199,6 +197,7 @@ while MVC_measurement_n>0;
     % Resting for the next MVC for 3mins.
     startTime = GetSecs;     
     while GetSecs < startTime + Rest_duration;
+        ClosePTB
         MVC_disp=[num2str(Rest_duration-round(GetSecs-startTime)),'s'];
         DrawFormattedText(theWindow,[text4 MVC_disp],'center','center', white,255);
         Screen(theWindow,'Flip',[],0); 

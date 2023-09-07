@@ -164,7 +164,6 @@ n = ceil(d.Rate/10);
 %startTime = GetSecs; 
 
 while trial_n >0; 
-    KeyPressFcnTest
 
     % Phase 1: Hold the force (bar) to remain on the green line (threshold).   
     startTime = GetSecs; 
@@ -172,7 +171,8 @@ while trial_n >0;
 
     start(d,"continuous");
     while GetSecs < startTime + Threshold_duration;
-
+        ClosePTB
+        
         % inner screen setup
         Screen('FillRect',theWindow,white,ExtraTop);
         Screen('FillRect',theWindow,red,ExtraBottom);
@@ -216,6 +216,8 @@ while trial_n >0;
 
     startTime = GetSecs; 
     while GetSecs < startTime + Ready_duration
+        ClosePTB
+        
         % inner screen setup
         Screen('FillRect',theWindow,white,ExtraTop);
         Screen('FillRect',theWindow,white,ExtraBottom);
@@ -232,6 +234,8 @@ while trial_n >0;
 
     start(d,"continuous");
     while GetSecs < startTime + MVC_duration
+        ClosePTB
+        
         % inner screen setup
         Screen('FillRect',theWindow,white,ExtraTop);
         Screen('FillRect',theWindow,red,ExtraBottom);
@@ -275,6 +279,8 @@ while trial_n >0;
     
     startTime = GetSecs; 
     while GetSecs < startTime + Ready_duration
+        ClosePTB
+        
         % inner screen setup
         Screen('FillRect',theWindow,white,ExtraTop);
         Screen('FillRect',theWindow,white,ExtraBottom);
