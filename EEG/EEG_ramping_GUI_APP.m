@@ -136,7 +136,7 @@ Trial_n=10;
 
 %Parameters of duration
 Ramping_t=Threshold*2/0.1;               % According to reference: 10% for 2s-ramping.
-Velocity=(Ax3-Ax2)/Ramping_t;
+Velocity=((Ax3+Ax4)/2-Ax2)/Ramping_t;
 pre_Ramping_t=(Ax2-Ax1)/Velocity         % #1-#2
 pre_Threshold_t=(inScrnWidth/2)/Velocity % #1-#2-#3 
 post_Threshold_t=pre_Threshold_t;        % #6-#7-#8 
@@ -170,6 +170,8 @@ Screen(theWindow,'Flip',[],0);                                              % 0:
 WaitSecs(3);
 
 %% Trail
+timing_check=[]
+
 while Trial_n >0
     %Background setup
     Screen('FillRect',theWindow,white,InScr);
@@ -192,21 +194,24 @@ while Trial_n >0
     Screen(theWindow,'Flip',[],0); 
     
     %Phase1: onset of a trial.
-    if ~DebugMode, setRTS(t, false); setDTR(t, false); io64(ioObj,address,1);  end % trigger 1: the onset of MVC measurement.   
     
     Onset_ramping=true; 
     Offset_ramping=true;
 
     start(d,"continuous"); n = ceil(d.Rate/10);
     startTime = GetSecs;  
+        if ~DebugMode, triger1_check = GetSecs-startTime, timing_check=[timing_check; triger1_check]; setRTS(t, false); setDTR(t, false); io64(ioObj,address,1);  end % trigger 1: the onset of MVC measurement.   
+
     while GetSecs <= startTime + Trial_t      
         timer=GetSecs-startTime; 
         if ~DebugMode
             %Phase2: onset of the ramping. 
             if GetSecs-startTime>=round(pre_Ramping_t,2) && Onset_ramping == true
+              triger2_check = GetSecs-startTime, timing_check=[timing_check; triger2_check];
               setRTS(t, true); setDTR(t, false); io64(ioObj,address,2); Onset_ramping = false ; end           
             %Phase3: onset of the threshold. 
             if GetSecs-startTime >=round(pre_Threshold_t,2) && Offset_ramping == true
+             triger3_check = GetSecs-startTime, timing_check=[timing_check; triger3_check];
               setRTS(t, false); setDTR(t, true); io64(ioObj,address,3); Offset_ramping = false ; end
         end
 
